@@ -50,6 +50,10 @@ jobs:
         id: init
         run: terraform init -backend-config="bucket=${{ env.AWS_BACKEND_BUCKET }}"
       
+      - name: Terraform switch workspace
+        id: switch
+        run: terraform workspace select ${{ env.ENV }}
+
       - name: Terraform Validate
         id: validate
         run: terraform validate
