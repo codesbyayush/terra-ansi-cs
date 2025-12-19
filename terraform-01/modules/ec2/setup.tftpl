@@ -1,0 +1,17 @@
+<powershell>
+
+$url = "https://raw.githubusercontent.com/ansible/ansible-documentation/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
+$file = "$env:temp\ConfigureRemotingForAnsible.ps1"
+
+(New-Object System.Net.WebClient).DownloadFile($url, $file)
+
+powershell.exe -ExecutionPolicy ByPass -File $file -ForceNewSSLCert
+
+$UserName = "${username}"
+$SecurePassword = ConvertTo-SecureString "${ansible_password}" -AsPlainText -Force
+
+New-LocalUser -Name $UserName -Password $SecurePassword -AccountNeverExpires -PasswordNeverExpires
+Add-LocalGroupMember -Group "Administrators" -Member $UserName
+
+Restart-Service winrm
+</powershell>

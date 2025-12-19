@@ -11,16 +11,22 @@ on:
 env:
   AWS_REGION : "us-east-1"
   AWS_ROLE_ARN: ${{ secrets.AWS_GH_ACTION_ROLE_ARN }}
- 
+  AWS_BACKEND_BUCKET: ${{ secrets.AWS_BACKEND_BUCKET }}
+  DB_NAME: ${{ secrets.DB_NAME }}
+  ENV: "prod"
+
 permissions:
       id-token: write   # This is required for requesting the JWT
       contents: read    # This is required for actions/checkout
 jobs:
   AssumeRoleAndCallIdentity:
     runs-on: ubuntu-latest
-    steps:
-      - name: Git clone the repository
-        uses: actions/checkout@v3
+    defaults:
+      run:
+        working-directory: ./terraform-01
+    steps:        
+      - uses: actions/checkout@v3
+
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
@@ -31,5 +37,31 @@ jobs:
       - name: Sts GetCallerIdentity
         run: |
           aws sts get-caller-identity
+      
 
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform fmt
+        id: fmt
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform init
+        id: init
+        run: terraform init -backend-config="bucket=${{ env.AWS_BACKEND_BUCKET }}"
+      
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate
+
+      - name: Terraform Apply
+        id: apply
+        run: |
+          cat > ci.auto.tfvars <<EOF
+          env = "${{ env.ENV }}"
+          state_file_bucket = "${{ env.AWS_BACKEND_BUCKET }}"
+          region = "${{ env.AWS_REGION }}"
+          db_name = "${{ env.DB_NAME }}"
+          EOF
+          terraform apply -auto-approve -input=false
 
