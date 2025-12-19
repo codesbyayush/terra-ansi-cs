@@ -1,0 +1,11 @@
+*/.terraform/*
+*dev.hcl
+*.tfstate*
+*.md*
+*.tfvars
+plan
+plan.tfgraph
+*/.vs/*
+*/obj/*
+*/bin/*
+*.user
