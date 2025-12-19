@@ -1,11 +1,13 @@
 output "ec2_instance_ids" {
   value       = module.ec2.instance_ids
   description = "EC2 instance IDs"
+  sensitive = true
 }
 
 output "ec2_public_ips" {
   value       = module.ec2.instance_public_ips
   description = "EC2 instance public IP addresses"
+  sensitive = true
 }
 
 output "alb_dns_name" {
@@ -16,11 +18,7 @@ output "alb_dns_name" {
 output "rds_endpoint" {
   value       = module.rds.rds_endpoint
   description = "RDS PostgreSQL endpoint"
-}
-
-output "rds_address" {
-  value       = module.rds.rds_address
-  description = "RDS PostgreSQL address (hostname)"
+  sensitive = true
 }
 
 output "rds_port" {
@@ -31,6 +29,7 @@ output "rds_port" {
 output "rds_db_name" {
   value       = module.rds.rds_db_name
   description = "RDS database name"
+  sensitive = true
 }
 
 output "ansible_password" {
@@ -41,6 +40,7 @@ output "ansible_password" {
 output "rds_username" {
   value       = module.rds.rds_username
   description = "RDS database master username"
+  sensitive = true
 }
 
 output "rds_password" {

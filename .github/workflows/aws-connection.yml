@@ -1,4 +1,4 @@
-name: Connect to an AWS role from a GitHub repository
+name: Automated infra provisioning with Terraform
 
 on:
   push:
@@ -19,7 +19,7 @@ permissions:
       id-token: write   # This is required for requesting the JWT
       contents: read    # This is required for actions/checkout
 jobs:
-  AssumeRoleAndCallIdentity:
+  TerraformProvisioning:
     runs-on: ubuntu-latest
     defaults:
       run:
