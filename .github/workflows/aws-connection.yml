@@ -89,10 +89,12 @@ jobs:
       - name: Terraform init
         id: init
         run: terraform init -backend-config="bucket=${{ env.AWS_BACKEND_BUCKET }}"
+        working-directory: ./terraform-01
       
       - name: Terraform switch workspace
         id: switch
         run: terraform workspace select ${{ env.ENV }}
+        working-directory: ./terraform-01
       
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
