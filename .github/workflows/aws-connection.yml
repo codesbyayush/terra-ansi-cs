@@ -86,12 +86,13 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       
       - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.1'
+        continue-on-error: true
         
       - name: Build release C#
-        run: dotnet public -c release -o ../ansible-01/cout
+        run: dotnet publish -c release -o ../ansible-01/cout
         working-directory: ./try-02
       
       - name: Setup Bun runtime
