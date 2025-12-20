@@ -69,3 +69,38 @@ jobs:
           EOF
           terraform apply -auto-approve -input=false
 
+  AnsibleConfiguration: 
+    runs-on: ubuntu-latest
+    needs: TerraformProvisioning
+    defaults:
+      run:
+        working-directory: ./ansible-01
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: configure aws credentials
+        uses: aws-actions/configure-aws-credentials@v1.7.0
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          role-session-name: GitHub_to_AWS_via_FederatedOIDC
+          aws-region: ${{ env.AWS_REGION }}
+        
+      - name: Build release C#
+        run: dotnet public -c release -o ../ansible-01/cout
+        working-directory: ./try-02
+      
+      - name: Setup Bun runtime
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+      
+      - name: Update envs and secrets to latest
+        run: bun script
+
+      - name: Install Ansible
+        run: sudo apt install -y ansible
+
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i ./inventory.ini ./deploy.yml
+      
