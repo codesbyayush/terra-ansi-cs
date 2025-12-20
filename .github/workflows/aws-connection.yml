@@ -77,6 +77,7 @@ jobs:
         working-directory: ./ansible-01
     steps:
       - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v3
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
@@ -84,6 +85,14 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
+      
+      - name: Terraform init
+        id: init
+        run: terraform init -backend-config="bucket=${{ env.AWS_BACKEND_BUCKET }}"
+      
+      - name: Terraform switch workspace
+        id: switch
+        run: terraform workspace select ${{ env.ENV }}
       
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
