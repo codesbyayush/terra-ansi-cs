@@ -5,10 +5,10 @@ locals {
 
 resource "random_string" "db_username" {
   count   = var.username == null ? 1 : 0
-  length  = 12
+  length  = 16
   special = false
   upper   = false
-  numeric = true
+  numeric = false
 }
 
 resource "random_password" "db_password" {
