@@ -24,15 +24,14 @@ data "aws_ami" "windows_2025" {
 }
 
 resource "random_password" "ansible_password" {
-  length  = 20
-  special = true
+  length  = 24
+  special = false
   upper   = true
   lower   = true
   numeric = true
   min_lower = 1
   min_upper = 1
   min_numeric = 1
-  min_special = 1
 }
 
 resource "aws_instance" "windows_server" {
