@@ -1,10 +1,9 @@
----
 - name: Deployment setup for .NET
   hosts: all
   vars: 
     mysite: mysite1
     dest_folder_name: mysite
-    src_folder_path: "{{playbook_dir}}/cout"
+    src_folder_path: "{{playbook_dir}}/cout/"
     bundle_download_link: https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.1/dotnet-hosting-10.0.1-win.exe
     download_path: C:\Users\ansible\Downloads
   tasks: 
@@ -12,6 +11,7 @@
       ansible.windows.win_environment: 
         level: machine
         variables: 
+          
     - name: Starting iis service
       ansible.windows.win_service: 
         name: W3SVC
@@ -73,7 +73,7 @@
     - name: Create application pool
       microsoft.iis.web_app_pool: 
         name: MyAppPool
-        state: started
+        state: restarted
         attributes: 
           managedPipelineMode: Integrated
           managedRuntimeVersion: ""
