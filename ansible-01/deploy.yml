@@ -14,9 +14,11 @@
         variables: 
     - name: Ensuring IIS management tools presence
       ansible.windows.win_feature: 
-        name: IIS server
+        name:
+          - Web-Server
+          - Web-Asp-Net45
+          - Web-Mgmt-Tools
         state: present
-        include_sub_features: true
         include_management_tools: true
     - name: Starting WWWSVC
       ansible.windows.win_service: 
