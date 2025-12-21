@@ -30,12 +30,14 @@ grp_vars = grp_vars.replace(regex_for_vals, `ansible_password: "${secrets.ansibl
 await Bun.write(grpvarpath, grp_vars)
 
 let deployText = await Bun.file(deploypath).text();
-const deployToJsObj = await Bun.YAML.parse(deployText);
+const deployYmlToJS = await Bun.YAML.parse(deployText);
+const deployToJsObj = deployYmlToJS[0];
 
 const newvars = {
     "ConnectionStrings__DefaultConnection": `Host=${secrets.rds_endpoint.value.split(":")[0]};Port=${secrets.rds_port.value};Database=${secrets.rds_db_name.value};Username=${secrets.rds_username.value};Password=${secrets.rds_password.value}`
 }
 deployToJsObj.tasks[0]["ansible.windows.win_environment"]["variables"] = newvars
 
-deployText = Bun.YAML.stringify(deployToJsObj, null, 2);
+deployYmlToJS[0] = deployToJsObj
+deployText = Bun.YAML.stringify(deployYmlToJS, null, 2);
 await Bun.write(deploypath, deployText);

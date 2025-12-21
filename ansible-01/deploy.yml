@@ -1,101 +1,101 @@
-name: Deployment setup for .NET
-hosts: all
-vars: 
-  mysite: mysite1
-  dest_folder_name: mysite
-  src_folder_path: '{{playbook_dir}}/cout/'
-  bundle_download_link: https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.1/dotnet-hosting-10.0.1-win.exe
-  download_path: C:\Users\ansible\Downloads
-tasks: 
-  - name: Set env variables
-    ansible.windows.win_environment: 
-      level: machine
-      variables: 
-        ConnectionStrings__DefaultConnection: ""
-  - name: Ensuring IIS management tools presence
-    ansible.windows.win_feature: 
-      name: IIS server
-      state: present
-      include_sub_features: true
-      include_management_tools: true
-  - name: Starting WWWSVC
-    ansible.windows.win_service: 
-      name: W3SVC
-      state: started
-      start_mode: auto
-  - name: Starting WWWSVC
-    ansible.windows.win_service: 
-      name: sshd
-      state: started
-      start_mode: auto
-  - name: Firewall rule to allow HTTP
-    community.windows.win_firewall_rule: 
-      name: HTTP
-      localport: 80
-      action: allow
-      direction: in
-      protocol: tcp
-      state: present
-      enabled: true
-  - name: Firewall rule to allow HTTPS
-    community.windows.win_firewall_rule: 
-      name: HTTP
-      localport: 443
-      action: allow
-      direction: in
-      protocol: tcp
-      state: present
-      enabled: true
-  - name: Firewall rule to allow SSH access
-    community.windows.win_firewall_rule: 
-      name: SSH
-      localport: 22
-      action: allow
-      direction: in
-      protocol: tcp
-      state: present
-      enabled: true
-  - name: Ensure destination directory exists
-    ansible.windows.win_file: 
-      path: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
-      state: directory
-  - name: Copy publish folder to destination
-    ansible.windows.win_copy: 
-      src: "{{ src_folder_path }}"
-      dest: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
-  - name: Download .Net hosting bundle
-    ansible.windows.win_get_url: 
-      url: "{{ bundle_download_link }}"
-      dest: "{{ download_path }}\\dotnet-hosting-10.0.1-win.exe"
-      force: "no"
-    register: download_result
-  - name: Install .Net hosting bundle
-    ansible.windows.win_package: 
-      path: "{{ download_path }}\\dotnet-hosting-10.0.1-win.exe"
-      product_id: .Net hosting bundle
-      state: present
-      arguments: /q /norestart
-    when: download_result is succeeded
-  - name: Create application pool
-    microsoft.iis.web_app_pool: 
-      name: MyAppPool
-      state: started
-      attributes: 
-        managedPipelineMode: Integrated
-        managedRuntimeVersion: ""
-        enable32BitAppOnWin64: true
-  - name: Stop the Default Web Site in IIS
-    microsoft.iis.website: 
-      name: Default Web Site
-      state: stopped
-  - name: Website setup
-    microsoft.iis.website: 
-      name: "{{ mysite }}"
-      application_pool: MyAppPool
-      state: restarted
-      physical_path: "C:\\inetpub\\wwwroot\\{{ dest_folder_name }}\\"
-      bindings: 
-        set: 
-          - ip: "*"
-            port: 80
-            protocol: http
+---
+- name: Deployment setup for .NET
+  hosts: all
+  vars: 
+    mysite: mysite1
+    dest_folder_name: mysite
+    src_folder_path: "{{playbook_dir}}/cout"
+    bundle_download_link: https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.1/dotnet-hosting-10.0.1-win.exe
+    download_path: C:\Users\ansible\Downloads
+  tasks: 
+    - name: Set env variables
+      ansible.windows.win_environment: 
+        level: machine
+        variables: 
+    - name: Ensuring IIS management tools presence
+      ansible.windows.win_feature: 
+        name: IIS server
+        state: present
+        include_sub_features: true
+        include_management_tools: true
+    - name: Starting WWWSVC
+      ansible.windows.win_service: 
+        name: W3SVC
+        state: started
+        start_mode: auto
+    - name: Starting WWWSVC
+      ansible.windows.win_service: 
+        name: sshd
+        state: started
+        start_mode: auto
+    - name: Firewall rule to allow HTTP
+      community.windows.win_firewall_rule: 
+        name: HTTP
+        localport: 80
+        action: allow
+        direction: in
+        protocol: tcp
+        state: present
+        enabled: true
+    - name: Firewall rule to allow HTTPS
+      community.windows.win_firewall_rule: 
+        name: HTTP
+        localport: 443
+        action: allow
+        direction: in
+        protocol: tcp
+        state: present
+        enabled: true
+    - name: Firewall rule to allow SSH access
+      community.windows.win_firewall_rule: 
+        name: SSH
+        localport: 22
+        action: allow
+        direction: in
+        protocol: tcp
+        state: present
+        enabled: true
+    - name: Ensure destination directory exists
+      ansible.windows.win_file: 
+        path: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
+        state: directory
+    - name: Copy publish folder to destination
+      ansible.windows.win_copy: 
+        src: "{{ src_folder_path }}"
+        dest: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
+    - name: Download .Net hosting bundle
+      ansible.windows.win_get_url: 
+        url: "{{ bundle_download_link }}"
+        dest: "{{ download_path }}\\dotnet-hosting-10.0.1-win.exe"
+        force: "no"
+      register: download_result
+    - name: Install .Net hosting bundle
+      ansible.windows.win_package: 
+        path: "{{ download_path }}\\dotnet-hosting-10.0.1-win.exe"
+        product_id: .Net hosting bundle
+        state: present
+        arguments: /q /norestart
+      when: download_result is succeeded
+    - name: Create application pool
+      microsoft.iis.web_app_pool: 
+        name: MyAppPool
+        state: started
+        attributes: 
+          managedPipelineMode: Integrated
+          managedRuntimeVersion: ""
+          enable32BitAppOnWin64: true
+    - name: Stop the Default Web Site in IIS
+      microsoft.iis.website: 
+        name: Default Web Site
+        state: stopped
+    - name: Website setup
+      microsoft.iis.website: 
+        name: "{{ mysite }}"
+        application_pool: MyAppPool
+        state: restarted
+        physical_path: "C:\\inetpub\\wwwroot\\{{ dest_folder_name }}\\"
+        bindings: 
+          set: 
+            - ip: "*"
+              port: 80
+              protocol: http
