@@ -12,20 +12,12 @@
       ansible.windows.win_environment: 
         level: machine
         variables: 
-    - name: Ensuring IIS management tools presence
-      ansible.windows.win_feature: 
-        name:
-          - Web-Server
-          - Web-Asp-Net45
-          - Web-Mgmt-Tools
-        state: present
-        include_management_tools: true
-    - name: Starting WWWSVC
+    - name: Starting iis service
       ansible.windows.win_service: 
         name: W3SVC
         state: started
         start_mode: auto
-    - name: Starting WWWSVC
+    - name: Starting ssh service
       ansible.windows.win_service: 
         name: sshd
         state: started

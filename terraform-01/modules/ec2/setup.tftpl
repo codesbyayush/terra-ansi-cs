@@ -14,4 +14,11 @@ New-LocalUser -Name $UserName -Password $SecurePassword -AccountNeverExpires -Pa
 Add-LocalGroupMember -Group "Administrators" -Member $UserName
 
 Restart-Service winrm
+
+# Install IIS and required features
+Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Mgmt-Tools -IncludeManagementTools
+
+Set-Service -Name W3SVC -StartupType Automatic
+Start-Service W3SVC
+
 </powershell>
