@@ -11,17 +11,12 @@
       ansible.windows.win_environment: 
         level: machine
         variables: 
-          
-    - name: Starting iis service
-      ansible.windows.win_service: 
-        name: W3SVC
-        state: started
-        start_mode: auto
     - name: Starting ssh service
       ansible.windows.win_service: 
         name: sshd
         state: started
         start_mode: auto
+
     - name: Firewall rule to allow HTTP
       community.windows.win_firewall_rule: 
         name: HTTP
@@ -31,15 +26,17 @@
         protocol: tcp
         state: present
         enabled: true
+
     - name: Firewall rule to allow HTTPS
       community.windows.win_firewall_rule: 
-        name: HTTP
+        name: HTTPS
         localport: 443
         action: allow
         direction: in
         protocol: tcp
         state: present
         enabled: true
+
     - name: Firewall rule to allow SSH access
       community.windows.win_firewall_rule: 
         name: SSH
@@ -49,20 +46,29 @@
         protocol: tcp
         state: present
         enabled: true
+
+    - name: Stop IIS service before deployment
+      ansible.windows.win_service: 
+        name: W3SVC
+        state: stopped
+
     - name: Ensure destination directory exists
       ansible.windows.win_file: 
         path: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
         state: directory
+
     - name: Copy publish folder to destination
       ansible.windows.win_copy: 
         src: "{{ src_folder_path }}"
         dest: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
+
     - name: Download .Net hosting bundle
       ansible.windows.win_get_url: 
         url: "{{ bundle_download_link }}"
         dest: "{{ download_path }}\\dotnet-hosting-10.0.1-win.exe"
         force: "no"
       register: download_result
+
     - name: Install .Net hosting bundle
       ansible.windows.win_package: 
         path: "{{ download_path }}\\dotnet-hosting-10.0.1-win.exe"
@@ -70,18 +76,27 @@
         state: present
         arguments: /q /norestart
       when: download_result is succeeded
+
+    - name: Start IIS service
+      ansible.windows.win_service: 
+        name: W3SVC
+        state: started
+        start_mode: auto
+
+    - name: Remove the Default Web Site in IIS
+      microsoft.iis.website: 
+        name: Default Web Site
+        state: absent
+
     - name: Create application pool
       microsoft.iis.web_app_pool: 
         name: MyAppPool
-        state: restarted
+        state: started
         attributes: 
           managedPipelineMode: Integrated
           managedRuntimeVersion: ""
           enable32BitAppOnWin64: true
-    - name: Stop the Default Web Site in IIS
-      microsoft.iis.website: 
-        name: Default Web Site
-        state: stopped
+
     - name: Website setup
       microsoft.iis.website: 
         name: "{{ mysite }}"
