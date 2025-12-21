@@ -97,14 +97,24 @@
           managedRuntimeVersion: ""
           enable32BitAppOnWin64: true
 
-    - name: Website setup
+    - name: Remove old site if exists
+      microsoft.iis.website:
+        name: "{{ mysite }}"
+        state: absent
+      ignore_errors: true
+
+    - name: Create website with bindings
       microsoft.iis.website: 
         name: "{{ mysite }}"
         application_pool: MyAppPool
-        state: restarted
         physical_path: "C:\\inetpub\\wwwroot\\{{ dest_folder_name }}\\"
         bindings: 
           set: 
             - ip: "*"
               port: 80
               protocol: http
+
+    - name: Ensure website is started
+      microsoft.iis.website: 
+        name: "{{ mysite }}"
+        state: started
