@@ -101,6 +101,11 @@
       microsoft.iis.website:
         name: "{{ mysite }}"
         state: absent
+        bindings: 
+          remove: 
+            - ip: "*"
+              port: 80
+              protocol: http
       ignore_errors: true
 
     - name: Create website with bindings
@@ -113,6 +118,7 @@
             - ip: "*"
               port: 80
               protocol: http
+      ignore_errors: true
 
     - name: Ensure website is started
       microsoft.iis.website: 
