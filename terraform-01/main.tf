@@ -18,6 +18,7 @@ resource "random_password" "db_password" {
   upper   = true
   lower   = true
   numeric = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
 locals {
