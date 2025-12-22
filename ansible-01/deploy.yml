@@ -105,7 +105,6 @@
           remove: 
             - ip: "*"
               port: 80
-              protocol: http
       ignore_errors: true
 
     - name: Create website with bindings
@@ -119,6 +118,10 @@
               port: 80
               protocol: http
       ignore_errors: true
+    
+    - name: Restart iis after creation
+      ansible.windows.win_powershell:
+        script: iisreset /restart
 
     - name: Ensure website is started
       microsoft.iis.website: 
