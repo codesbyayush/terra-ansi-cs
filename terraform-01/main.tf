@@ -1,6 +1,6 @@
-
 locals {
-  vpc_cidr = "10.0.0.0/16"
+  vpc_cidr    = "10.0.0.0/16"
+  name_prefix = "${var.app_name}-${var.env}"
 }
 
 resource "random_string" "db_username" {
@@ -12,12 +12,12 @@ resource "random_string" "db_username" {
 }
 
 resource "random_password" "db_password" {
-  count   = var.password == null ? 1 : 0
-  length  = 20
-  special = true
-  upper   = true
-  lower   = true
-  numeric = true
+  count            = var.password == null ? 1 : 0
+  length           = 20
+  special          = true
+  upper            = true
+  lower            = true
+  numeric          = true
   override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
@@ -26,26 +26,25 @@ locals {
   db_password = var.password != null ? var.password : random_password.db_password[0].result
 }
 
-module "iam" {
-  source            = "./modules/iam"
-  state_file_bucket = var.state_file_bucket
+resource "random_password" "ansible_password" {
+  length      = 24
+  special     = false
+  upper       = true
+  lower       = true
+  numeric     = true
+  min_lower   = 1
+  min_upper   = 1
+  min_numeric = 1
 }
 
 module "vpc" {
   source               = "./modules/vpc"
-  env                  = var.env
   vpc_cidr             = local.vpc_cidr
   region               = var.region
   private_subnet_count = 2
   public_subnet_count  = 2
   avl_zones            = toset(data.aws_availability_zones.available.names)
-}
-
-module "sg" {
-  source      = "./modules/sg"
-  env         = var.env
-  vpc_id      = module.vpc.vpc_id
-  ingress_ips = var.josh_ips
+  name_prefix          = local.name_prefix
 }
 
 locals {
@@ -60,37 +59,85 @@ locals {
   }))
 }
 
-
+module "rds" {
+  source              = "./modules/rds"
+  vpc_id              = module.vpc.vpc_id
+  instance_class      = "db.t4g.micro"
+  engine              = "postgres"
+  engine_version      = "18.1"
+  username            = local.db_username
+  password            = local.db_password
+  db_name             = var.db_name
+  allocated_storage   = 20
+  subnet_ids          = local.private_subnet_by_avl_zone
+  encrypt_storage     = true
+  apply_immediately   = true
+  skip_final_snapshot = true
+  name_prefix         = local.name_prefix
+}
 
 module "ec2" {
-  source  = "./modules/ec2"
-  env     = var.env
-  subnets = length(local.public_east_1a_subnets) > 0 ? [local.public_east_1a_subnets[0]] : [module.vpc.public_subnets[0].id]
-  sg_ids  = [module.sg.http_access, module.sg.outbound_access, module.sg.rds_client, module.sg.dev_access]
+  source           = "./modules/ec2"
+  vpc_id           = module.vpc.vpc_id
+  subnets          = length(local.public_east_1a_subnets) > 0 ? [local.public_east_1a_subnets[0]] : [module.vpc.public_subnets[0].id]
+  name_prefix      = local.name_prefix
+  key_name         = var.ec2_key_name
+  instance_tags    = { Role = "apiserver" }
+  enable_ssh       = true
+  enable_rdp       = true
+  dev_access_cidrs = tolist(var.josh_ips)
+
+  ingress_rules = [
+    {
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "HTTP"
+    },
+    {
+      from_port   = 5985
+      to_port     = 5985
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "WinRM HTTP"
+    },
+    {
+      from_port   = 5986
+      to_port     = 5986
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "WinRM HTTPS"
+    }
+  ]
+
+  additional_sg_ids = [module.rds.client_security_group_id]
+
+  user_data = templatefile("${path.root}/templates/ec2_user_data.tftpl", {
+    username         = "ansible"
+    ansible_password = random_password.ansible_password.result
+  })
 }
 
 module "alb" {
-  source     = "./modules/alb"
-  subnets    = local.public_subnet_by_avl_zone
-  sg_ids     = [module.sg.http_access, module.sg.outbound_access]
-  vpc_id     = module.vpc.vpc_id
-  target_ids = module.ec2.instance_ids
-  env        = var.env
+  source      = "./modules/alb"
+  vpc_id      = module.vpc.vpc_id
+  subnets     = local.public_subnet_by_avl_zone
+  target_ids  = module.ec2.instance_ids
+  name_prefix = local.name_prefix
+
+  ingress_rules = [
+    {
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "HTTP"
+    }
+  ]
 }
 
-module "rds" {
-  source                 = "./modules/rds"
-  instance_class         = "db.t3.micro"
-  engine                 = "postgres"
-  engine_version         = "18.1"
-  username               = local.db_username
-  password               = local.db_password
-  db_name                = var.db_name
-  allocated_storage      = 20
-  subnet_ids             = local.private_subnet_by_avl_zone
-  env                    = var.env
-  encrypt_storage         = true
-  apply_immediately       = true
-  skip_final_snapshot    = true
-  vpc_security_group_ids = [module.sg.rds_server]
+module "iam" {
+  source            = "./modules/iam"
+  state_file_bucket = var.state_file_bucket
 }

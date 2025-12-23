@@ -11,41 +11,6 @@
       ansible.windows.win_environment: 
         level: machine
         variables: 
-    - name: Starting ssh service
-      ansible.windows.win_service: 
-        name: sshd
-        state: started
-        start_mode: auto
-
-    - name: Firewall rule to allow HTTP
-      community.windows.win_firewall_rule: 
-        name: HTTP
-        localport: 80
-        action: allow
-        direction: in
-        protocol: tcp
-        state: present
-        enabled: true
-
-    - name: Firewall rule to allow HTTPS
-      community.windows.win_firewall_rule: 
-        name: HTTPS
-        localport: 443
-        action: allow
-        direction: in
-        protocol: tcp
-        state: present
-        enabled: true
-
-    - name: Firewall rule to allow SSH access
-      community.windows.win_firewall_rule: 
-        name: SSH
-        localport: 22
-        action: allow
-        direction: in
-        protocol: tcp
-        state: present
-        enabled: true
 
     - name: Stop IIS service before deployment
       ansible.windows.win_service: 
@@ -82,11 +47,6 @@
         name: W3SVC
         state: started
         start_mode: auto
-
-    - name: Remove the Default Web Site in IIS
-      microsoft.iis.website: 
-        name: Default Web Site
-        state: absent
 
     - name: Create application pool
       microsoft.iis.web_app_pool: 

@@ -1,11 +1,9 @@
 output "instance_ids" {
-  value = toset([for server in aws_instance.windows_server : server.id])
+  value       = toset([for server in aws_instance.this : server.id])
+  description = "Set of EC2 instance IDs"
 }
 
 output "instance_public_ips" {
-  value = [for server in aws_instance.windows_server : server.public_ip]
-}
-
-output "ansible_password" {
-  value = random_password.ansible_password.result
+  value       = [for server in aws_instance.this : server.public_ip]
+  description = "List of public IP addresses assigned to the instances"
 }

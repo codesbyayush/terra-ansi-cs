@@ -1,20 +1,15 @@
 output "rds_endpoint" {
-  value       = aws_db_instance.main-db.endpoint
+  value       = aws_db_instance.this.endpoint
   description = "RDS instance endpoint"
 }
 
-output "rds_address" {
-  value       = aws_db_instance.main-db.address
-  description = "RDS instance address (hostname)"
-}
-
 output "rds_port" {
-  value       = aws_db_instance.main-db.port
+  value       = aws_db_instance.this.port
   description = "RDS instance port"
 }
 
 output "rds_db_name" {
-  value       = aws_db_instance.main-db.db_name
+  value       = aws_db_instance.this.db_name
   description = "RDS database name"
 }
 
@@ -29,3 +24,7 @@ output "rds_password" {
   sensitive   = true
 }
 
+output "client_security_group_id" {
+  value       = aws_security_group.client.id
+  description = "Security group ID to attach to resources that need database access"
+}

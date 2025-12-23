@@ -1,29 +1,77 @@
-resource "aws_db_instance" "main-db" {
-  instance_class       = var.instance_class
-  engine               = var.engine
-  engine_version       = var.engine_version
-  username             = var.username
-  password             = var.password
-  db_name              = var.db_name
-  storage_encrypted    = var.encrypt_storage
-  allocated_storage    = var.allocated_storage
-  apply_immediately    = var.apply_immediately
-  skip_final_snapshot  = var.skip_final_snapshot
-  multi_az             = false
-  db_subnet_group_name = aws_db_subnet_group.rds_subnet_group.name
-  vpc_security_group_ids = var.vpc_security_group_ids
+locals {
+  name_prefix = "${var.name_prefix}-rds"
+}
+
+# can attach this to resources that need DB access
+resource "aws_security_group" "client" {
+  name_prefix = "${local.name_prefix}-client-"
+  vpc_id      = var.vpc_id
 
   tags = {
-    Environment = var.env
+    Name = "${local.name_prefix}-client"
+  }
+
+  lifecycle {
+    create_before_destroy = true
   }
 }
 
-
-resource "aws_db_subnet_group" "rds_subnet_group" {
-  name       = "subnet_grp_rds"
-  subnet_ids = var.subnet_ids
+resource "aws_security_group" "server" {
+  name_prefix = "${local.name_prefix}-server-"
+  vpc_id      = var.vpc_id
 
   tags = {
-    Environment = var.env
+    Name = "${local.name_prefix}-server"
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_vpc_security_group_egress_rule" "client_to_server" {
+  security_group_id            = aws_security_group.client.id
+  referenced_security_group_id = aws_security_group.server.id
+  ip_protocol                  = "tcp"
+  from_port                    = var.db_port
+  to_port                      = var.db_port
+}
+
+resource "aws_vpc_security_group_ingress_rule" "server_from_client" {
+  security_group_id            = aws_security_group.server.id
+  referenced_security_group_id = aws_security_group.client.id
+  ip_protocol                  = "tcp"
+  from_port                    = var.db_port
+  to_port                      = var.db_port
+}
+
+resource "aws_db_subnet_group" "this" {
+  name_prefix = "${local.name_prefix}-subnet-grp-"
+  subnet_ids  = var.subnet_ids
+
+  tags = {
+    Name = "${local.name_prefix}-subnet-grp"
+  }
+}
+
+resource "aws_db_instance" "this" {
+  identifier_prefix      = "${local.name_prefix}-"
+  instance_class         = var.instance_class
+  engine                 = var.engine
+  engine_version         = var.engine_version
+  username               = var.username
+  password               = var.password
+  db_name                = var.db_name
+  port                   = var.db_port
+  storage_encrypted      = var.encrypt_storage
+  allocated_storage      = var.allocated_storage
+  apply_immediately      = var.apply_immediately
+  skip_final_snapshot    = var.skip_final_snapshot
+  multi_az               = false
+  db_subnet_group_name   = aws_db_subnet_group.this.name
+  vpc_security_group_ids = [aws_security_group.server.id]
+
+  tags = {
+    Name = local.name_prefix
   }
 }

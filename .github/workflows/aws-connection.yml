@@ -6,18 +6,19 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-  
 
 env:
   AWS_REGION : "us-east-1"
   AWS_ROLE_ARN: ${{ secrets.AWS_GH_ACTION_ROLE_ARN }}
   AWS_BACKEND_BUCKET: ${{ secrets.AWS_BACKEND_BUCKET }}
+  AWS_SSH_KEY_NAME: ${{ secrets.AWS_SSH_KEY_NAME }}
   DB_NAME: ${{ secrets.DB_NAME }}
   ENV: "prod"
 
 permissions:
       id-token: write   # This is required for requesting the JWT
       contents: read    # This is required for actions/checkout
+
 jobs:
   TerraformProvisioning:
     runs-on: ubuntu-latest
@@ -40,6 +41,8 @@ jobs:
       
 
       - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.1
 
       - name: Terraform init
         id: init
@@ -61,6 +64,7 @@ jobs:
           state_file_bucket = "${{ env.AWS_BACKEND_BUCKET }}"
           region = "${{ env.AWS_REGION }}"
           db_name = "${{ env.DB_NAME }}"
+          ec2_key_name = "${{ env.AWS_SSH_KEY_NAME }}"
           EOF
           terraform apply -auto-approve -input=false
 
@@ -73,6 +77,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.1
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0

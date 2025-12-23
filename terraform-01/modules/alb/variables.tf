@@ -1,21 +1,69 @@
-variable "subnets" {
-  type = set(string)
-}
-
-variable "sg_ids" {
-  type = set(string)
-}
-
-variable "env" {
-  type = string
-}
-
 variable "vpc_id" {
   type        = string
-  description = "VPC id "
+  description = "VPC ID for security groups and target group"
+}
+
+variable "subnets" {
+  type        = set(string)
+  description = "Subnet IDs for the load balancer (minimum 2 in different AZs)"
+
+  validation {
+    condition     = length(var.subnets) >= 2
+    error_message = "ALB requires at least 2 subnets in different availability zones"
+  }
 }
 
 variable "target_ids" {
   type        = set(string)
-  description = "Target group ids to load balance"
+  description = "Target instance IDs for the load balancer target group"
+}
+
+variable "name_prefix" {
+  type        = string
+  description = "Name prefix for all resources in this module"
+
+  validation {
+    condition     = length(var.name_prefix) >= 1 && length(var.name_prefix) <= 20
+    error_message = "name_prefix must be between 1 and 20 characters (ALB/Target Group have 32 char limit)"
+  }
+}
+
+variable "ingress_rules" {
+  type = list(object({
+    from_port   = number
+    to_port     = number
+    protocol    = string
+    cidr_blocks = list(string)
+    description = optional(string, "")
+  }))
+  default = [
+    {
+      from_port   = 80
+      to_port     = 80
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "HTTP"
+    }
+  ]
+  description = "List of ingress rules for the ALB"
+}
+
+variable "egress_rules" {
+  type = list(object({
+    from_port   = number
+    to_port     = number
+    protocol    = string
+    cidr_blocks = list(string)
+    description = optional(string, "")
+  }))
+  default = [
+    {
+      from_port   = 0
+      to_port     = 0
+      protocol    = "-1"
+      cidr_blocks = ["0.0.0.0/0"]
+      description = "Allow all outbound"
+    }
+  ]
+  description = "List of egress rules (defaults to allow all outbound)"
 }
