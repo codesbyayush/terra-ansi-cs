@@ -2,13 +2,29 @@ locals {
   name_prefix = "${var.name_prefix}-rds"
 }
 
+resource "random_string" "db_username" {
+  length  = 16
+  special = false
+  upper   = false
+  numeric = false
+}
+
+resource "random_password" "db_password" {
+  length           = 20
+  special          = true
+  upper            = true
+  lower            = true
+  numeric          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
+}
+
 # can attach this to resources that need DB access
 resource "aws_security_group" "client" {
-  name_prefix = "${local.name_prefix}-client-"
+  name_prefix = "${local.name_prefix}-client-to-server-sg-"
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = "${local.name_prefix}-client"
+    Name = "${local.name_prefix}-client-sg"
   }
 
   lifecycle {
@@ -17,11 +33,11 @@ resource "aws_security_group" "client" {
 }
 
 resource "aws_security_group" "server" {
-  name_prefix = "${local.name_prefix}-server-"
+  name_prefix = "${local.name_prefix}-server-to-client-sg-"
   vpc_id      = var.vpc_id
 
   tags = {
-    Name = "${local.name_prefix}-server"
+    Name = "${local.name_prefix}-server-sg"
   }
 
   lifecycle {
@@ -54,13 +70,29 @@ resource "aws_db_subnet_group" "this" {
   }
 }
 
+resource "aws_db_parameter_group" "this" {
+  name_prefix = "${local.name_prefix}-parameter-grp-"
+  family      = var.parameter_grp_family
+
+  parameter {
+    apply_method = "pending-reboot"
+    name         = "max_connections"
+    value        = "10"
+  }
+
+  tags = {
+    Name = "${local.name_prefix}-parameter-grp"
+  }
+}
+
 resource "aws_db_instance" "this" {
   identifier_prefix      = "${local.name_prefix}-"
   instance_class         = var.instance_class
-  engine                 = var.engine
+  engine                 = "postgres"
   engine_version         = var.engine_version
-  username               = var.username
-  password               = var.password
+  parameter_group_name   = aws_db_parameter_group.this.name
+  username               = random_string.db_username.result
+  password               = random_password.db_password.result
   db_name                = var.db_name
   port                   = var.db_port
   storage_encrypted      = var.encrypt_storage

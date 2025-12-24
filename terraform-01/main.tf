@@ -1,29 +1,16 @@
 locals {
   vpc_cidr    = "10.0.0.0/16"
   name_prefix = "${var.app_name}-${var.env}"
-}
 
-resource "random_string" "db_username" {
-  count   = var.username == null ? 1 : 0
-  length  = 16
-  special = false
-  upper   = false
-  numeric = false
-}
+  public_east_1a_subnets = [for subnet in module.vpc.public_subnets : subnet.id if subnet.availability_zone == "us-east-1a"]
 
-resource "random_password" "db_password" {
-  count            = var.password == null ? 1 : 0
-  length           = 20
-  special          = true
-  upper            = true
-  lower            = true
-  numeric          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
-}
+  public_subnet_by_avl_zone = toset(values({
+    for subnet in module.vpc.public_subnets : subnet.availability_zone => subnet.id
+  }))
 
-locals {
-  db_username = var.username != null ? var.username : random_string.db_username[0].result
-  db_password = var.password != null ? var.password : random_password.db_password[0].result
+  private_subnet_by_avl_zone = toset(values({
+    for subnet in module.vpc.private_subnets : subnet.availability_zone => subnet.id
+  }))
 }
 
 resource "random_password" "ansible_password" {
@@ -47,38 +34,25 @@ module "vpc" {
   name_prefix          = local.name_prefix
 }
 
-locals {
-  public_east_1a_subnets = [for subnet in module.vpc.public_subnets : subnet.id if subnet.availability_zone == "us-east-1a"]
-
-  public_subnet_by_avl_zone = toset(values({
-    for subnet in module.vpc.public_subnets : subnet.availability_zone => subnet.id
-  }))
-
-  private_subnet_by_avl_zone = toset(values({
-    for subnet in module.vpc.private_subnets : subnet.availability_zone => subnet.id
-  }))
-}
-
 module "rds" {
-  source              = "./modules/rds"
-  vpc_id              = module.vpc.vpc_id
-  instance_class      = "db.t4g.micro"
-  engine              = "postgres"
-  engine_version      = "18.1"
-  username            = local.db_username
-  password            = local.db_password
-  db_name             = var.db_name
-  allocated_storage   = 20
-  subnet_ids          = local.private_subnet_by_avl_zone
-  encrypt_storage     = true
-  apply_immediately   = true
-  skip_final_snapshot = true
-  name_prefix         = local.name_prefix
+  source               = "./modules/rds"
+  vpc_id               = module.vpc.vpc_id
+  instance_class       = "db.t4g.micro"
+  engine_version       = "18.1"
+  parameter_grp_family = "postgres18"
+  db_name              = var.db_name
+  allocated_storage    = 20
+  subnet_ids           = local.private_subnet_by_avl_zone
+  encrypt_storage      = true
+  apply_immediately    = true
+  skip_final_snapshot  = true
+  name_prefix          = local.name_prefix
 }
 
 module "ec2" {
   source           = "./modules/ec2"
   vpc_id           = module.vpc.vpc_id
+  instance_type    = "t3.micro"
   subnets          = length(local.public_east_1a_subnets) > 0 ? [local.public_east_1a_subnets[0]] : [module.vpc.public_subnets[0].id]
   name_prefix      = local.name_prefix
   key_name         = var.ec2_key_name
@@ -123,7 +97,6 @@ module "alb" {
   source      = "./modules/alb"
   vpc_id      = module.vpc.vpc_id
   subnets     = local.public_subnet_by_avl_zone
-  target_ids  = module.ec2.instance_ids
   name_prefix = local.name_prefix
 
   ingress_rules = [
@@ -135,6 +108,22 @@ module "alb" {
       description = "HTTP"
     }
   ]
+
+  target_groups = {
+    "dotnetapi" = {
+      port             = 80
+      protocol         = "HTTP"
+      protocol_version = "HTTP1"
+      target_ids       = module.ec2.instance_ids
+    }
+  }
+
+  listeners = {
+    "dotnetapi" = {
+      port     = 80
+      protocol = "HTTP"
+    }
+  }
 }
 
 module "iam" {

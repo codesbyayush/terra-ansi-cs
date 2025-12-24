@@ -119,7 +119,7 @@ resource "aws_vpc_security_group_ingress_rule" "ingress" {
 resource "aws_instance" "this" {
   count                  = length(var.subnets)
   ami                    = data.aws_ami.this.id
-  instance_type          = "t3.micro"
+  instance_type          = var.instance_type
   subnet_id              = var.subnets[count.index]
   vpc_security_group_ids = concat([aws_security_group.this.id], var.additional_sg_ids)
   key_name               = var.key_name

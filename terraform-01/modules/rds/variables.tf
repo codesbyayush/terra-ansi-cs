@@ -3,27 +3,6 @@ variable "vpc_id" {
   description = "VPC ID where security groups will be created"
 }
 
-variable "username" {
-  type        = string
-  description = "Master username for the database"
-}
-
-variable "password" {
-  type        = string
-  sensitive   = true
-  description = "Master password for the database"
-
-  validation {
-    condition     = length(var.password) >= 8 && length(var.password) <= 128
-    error_message = "Password must be between 8 and 128 characters"
-  }
-}
-
-variable "engine" {
-  type        = string
-  description = "Database engine type"
-}
-
 variable "instance_class" {
   type        = string
   description = "RDS instance class"
@@ -94,4 +73,9 @@ variable "name_prefix" {
     condition     = length(var.name_prefix) >= 1 && length(var.name_prefix) <= 50
     error_message = "name_prefix must be between 1 and 50 characters (RDS identifier has 63 char limit)"
   }
+}
+
+variable "parameter_grp_family" {
+  type        = string
+  description = "Name of the db parameter group family"
 }

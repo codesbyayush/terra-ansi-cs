@@ -24,6 +24,15 @@ locals {
       }
     ]
   ])
+
+  target_group_attachments = flatten([
+    for tg_key, tg_value in var.target_groups : [
+      for target_id in tg_value.target_ids : {
+        target_group_key = tg_key
+        target_id        = target_id
+      }
+    ]
+  ])
 }
 
 resource "aws_security_group" "this" {
@@ -70,7 +79,7 @@ resource "aws_vpc_security_group_ingress_rule" "ingress" {
 resource "aws_lb" "this" {
   name               = local.name_prefix
   load_balancer_type = "application"
-  internal           = false
+  internal           = var.internal
   subnets            = tolist(var.subnets)
   security_groups    = [aws_security_group.this.id]
 
@@ -80,34 +89,38 @@ resource "aws_lb" "this" {
 }
 
 resource "aws_lb_target_group" "this" {
-  name             = "${local.name_prefix}-tg"
-  port             = 80
-  protocol         = "HTTP"
-  protocol_version = "HTTP1"
+  for_each         = var.target_groups
+  name             = "${local.name_prefix}-tg-${each.key}"
+  port             = each.value.port
+  protocol         = each.value.protocol
+  protocol_version = each.value.protocol_version
   vpc_id           = var.vpc_id
 
   tags = {
-    Name = "${local.name_prefix}-tg"
+    Name = "${local.name_prefix}-tg-${each.key}"
   }
 }
 
 resource "aws_lb_target_group_attachment" "this" {
-  count            = length(var.target_ids)
-  target_group_arn = aws_lb_target_group.this.arn
-  target_id        = tolist(var.target_ids)[count.index]
-  port             = 80
+  count = length(local.target_group_attachments)
+
+  target_group_arn = aws_lb_target_group.this[local.target_group_attachments[count.index].target_group_key].arn
+  target_id        = local.target_group_attachments[count.index].target_id
 }
 
 resource "aws_lb_listener" "this" {
+  for_each = var.listeners
+
   load_balancer_arn = aws_lb.this.arn
-  port              = 80
+  port              = each.value.port
+  protocol          = each.value.protocol
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.this.arn
+    target_group_arn = aws_lb_target_group.this[each.key].arn
   }
 
   tags = {
-    Name = "${local.name_prefix}-listener"
+    Name = "${local.name_prefix}-listener-${each.key}"
   }
 }

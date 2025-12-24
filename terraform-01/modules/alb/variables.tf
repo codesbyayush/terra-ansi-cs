@@ -13,11 +13,6 @@ variable "subnets" {
   }
 }
 
-variable "target_ids" {
-  type        = set(string)
-  description = "Target instance IDs for the load balancer target group"
-}
-
 variable "name_prefix" {
   type        = string
   description = "Name prefix for all resources in this module"
@@ -66,4 +61,28 @@ variable "egress_rules" {
     }
   ]
   description = "List of egress rules (defaults to allow all outbound)"
+}
+
+variable "internal" {
+  type        = bool
+  default     = false
+  description = "Switch for making alb internal"
+}
+
+variable "target_groups" {
+  type = map(object({
+    port             = number
+    protocol         = string
+    protocol_version = string
+    target_ids       = set(string)
+  }))
+  description = "Target groups to create for the alb"
+}
+
+variable "listeners" {
+  type = map(object({
+    port     = number
+    protocol = string
+  }))
+  description = "Listeners to create for the ALB. Each listener forwards to a target group specified by map key"
 }

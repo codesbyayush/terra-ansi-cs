@@ -14,12 +14,12 @@ output "rds_db_name" {
 }
 
 output "rds_username" {
-  value       = var.username
+  value       = random_string.db_username.result
   description = "RDS database master username"
 }
 
 output "rds_password" {
-  value       = var.password
+  value       = random_password.db_password.result
   description = "RDS database master password"
   sensitive   = true
 }

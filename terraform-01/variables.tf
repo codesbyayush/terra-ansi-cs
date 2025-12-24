@@ -62,5 +62,5 @@ variable "app_name" {
 
 variable "ec2_key_name" {
   type        = string
-  description = "Name of the SSH key pair for EC2 instances"
+  description = "Name of the aws key pair for EC2 instances"
 }

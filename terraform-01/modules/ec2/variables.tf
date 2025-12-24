@@ -90,3 +90,9 @@ variable "additional_sg_ids" {
   default     = []
   description = "Additional security group IDs to attach (e.g., RDS client SG)"
 }
+
+variable "instance_type" {
+  type        = string
+  default     = "t3a.micro"
+  description = "Instance type to provision (defaults to t3a.micro)"
+}
