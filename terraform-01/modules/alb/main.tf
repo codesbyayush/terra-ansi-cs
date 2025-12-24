@@ -96,6 +96,10 @@ resource "aws_lb_target_group" "this" {
   protocol_version = each.value.protocol_version
   vpc_id           = var.vpc_id
 
+  health_check {
+    path = var.health_check_path
+  }
+
   tags = {
     Name = "${local.name_prefix}-tg-${each.key}"
   }

@@ -23,6 +23,11 @@ variable "name_prefix" {
   }
 }
 
+variable "health_check_path" {
+  type        = string
+  description = "Health check path for the ALB"
+}
+
 variable "ingress_rules" {
   type = list(object({
     from_port   = number

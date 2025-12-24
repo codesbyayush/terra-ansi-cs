@@ -94,10 +94,11 @@ module "ec2" {
 }
 
 module "alb" {
-  source      = "./modules/alb"
-  vpc_id      = module.vpc.vpc_id
-  subnets     = local.public_subnet_by_avl_zone
-  name_prefix = local.name_prefix
+  source            = "./modules/alb"
+  vpc_id            = module.vpc.vpc_id
+  subnets           = local.public_subnet_by_avl_zone
+  name_prefix       = local.name_prefix
+  health_check_path = "/weatherforecast"
 
   ingress_rules = [
     {
