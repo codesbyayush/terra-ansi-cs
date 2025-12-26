@@ -96,3 +96,9 @@ variable "instance_type" {
   default     = "t3a.micro"
   description = "Instance type to provision (defaults to t3a.micro)"
 }
+
+variable "cpu_credits_type" {
+  type        = string
+  default     = "standard"
+  description = "Credits type for burstable family instance. (e.g standard or unlimited)"
+}

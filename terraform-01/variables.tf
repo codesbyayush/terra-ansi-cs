@@ -31,24 +31,6 @@ variable "state_file_bucket" {
   description = "The S3 bucket storing the state file"
 }
 
-variable "username" {
-  type        = string
-  default     = null
-  description = "DB username (if not provided, will be auto-generated)"
-}
-
-variable "password" {
-  type        = string
-  default     = null
-  sensitive   = true
-  description = "DB master password (if not provided, will be auto-generated)"
-
-  validation {
-    condition     = var.password == null || (length(var.password) >= 8 && length(var.password) <= 128)
-    error_message = "DB password must be between 8 and 128 characters"
-  }
-}
-
 variable "db_name" {
   type        = string
   description = "Name of the database to create"

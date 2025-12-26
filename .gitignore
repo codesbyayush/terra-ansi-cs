@@ -1,7 +1,7 @@
 */.terraform/*
 *dev.hcl
 *.tfstate*
-*.md*
+_*.md*
 *.tfvars
 plan
 plan.tfgraph

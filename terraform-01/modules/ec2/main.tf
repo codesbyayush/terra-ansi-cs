@@ -70,6 +70,8 @@ locals {
     local.rdp_rules,
     local.ingress_rules_flat
   )
+
+  is_burstable = startswith(var.instance_type, "t")
 }
 
 resource "aws_security_group" "this" {
@@ -124,6 +126,13 @@ resource "aws_instance" "this" {
   vpc_security_group_ids = concat([aws_security_group.this.id], var.additional_sg_ids)
   key_name               = var.key_name
   user_data              = var.user_data
+
+  dynamic "credit_specification" {
+    for_each = [for type in [var.cpu_credits_type] : type if local.is_burstable]
+    content {
+      cpu_credits = var.cpu_credits_type
+    }
+  }
 
   tags = merge(
     var.instance_tags,

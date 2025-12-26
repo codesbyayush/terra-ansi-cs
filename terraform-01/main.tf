@@ -54,6 +54,7 @@ module "ec2" {
   vpc_id           = module.vpc.vpc_id
   instance_type    = "t3.micro"
   subnets          = length(local.public_east_1a_subnets) > 0 ? [local.public_east_1a_subnets[0]] : [module.vpc.public_subnets[0].id]
+  cpu_credits_type = "standard"
   name_prefix      = local.name_prefix
   key_name         = var.ec2_key_name
   instance_tags    = { Role = "apiserver" }
