@@ -15,18 +15,18 @@ Add-LocalGroupMember -Group "Administrators" -Member $UserName
 
 Restart-Service winrm
 
-# Install IIS and required features
-Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Mgmt-Tools -IncludeManagementTools
-
-Set-Service -Name W3SVC -StartupType Automatic
-Start-Service W3SVC
-
 New-NetFirewallRule -DisplayName "Allow HTTP" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow
 New-NetFirewallRule -DisplayName "Allow HTTPS" -Direction Inbound -LocalPort 443 -Protocol TCP -Action Allow
 New-NetFirewallRule -DisplayName "Allow SSH" -Direction Inbound -LocalPort 22 -Protocol TCP -Action Allow
 
 Set-Service -Name sshd -StartupType 'Automatic'
 Start-Service sshd
+
+# Install IIS and required features
+Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Mgmt-Tools -IncludeManagementTools
+
+Set-Service -Name W3SVC -StartupType Automatic
+Start-Service W3SVC
 
 Remove-Website -Name "Default Web Site"
 
