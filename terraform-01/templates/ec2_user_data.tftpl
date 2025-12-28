@@ -1,33 +1,29 @@
 <powershell>
-
+# Configure WinRM for Ansible
 $url = "https://raw.githubusercontent.com/ansible/ansible-documentation/devel/examples/scripts/ConfigureRemotingForAnsible.ps1"
 $file = "$env:temp\ConfigureRemotingForAnsible.ps1"
 
 (New-Object System.Net.WebClient).DownloadFile($url, $file)
-
 powershell.exe -ExecutionPolicy ByPass -File $file -ForceNewSSLCert
 
+# Create Ansible user
 $UserName = "${username}"
 $SecurePassword = ConvertTo-SecureString "${ansible_password}" -AsPlainText -Force
 
 New-LocalUser -Name $UserName -Password $SecurePassword -AccountNeverExpires -PasswordNeverExpires
 Add-LocalGroupMember -Group "Administrators" -Member $UserName
 
+# Ensure WinRM is running
+Set-Service -Name winrm -StartupType Automatic
 Restart-Service winrm
 
-New-NetFirewallRule -DisplayName "Allow HTTP" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow
-New-NetFirewallRule -DisplayName "Allow HTTPS" -Direction Inbound -LocalPort 443 -Protocol TCP -Action Allow
-New-NetFirewallRule -DisplayName "Allow SSH" -Direction Inbound -LocalPort 22 -Protocol TCP -Action Allow
+# Firewall rules
+New-NetFirewallRule -DisplayName "Allow HTTP" -Direction Inbound -LocalPort 80 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue
+New-NetFirewallRule -DisplayName "Allow HTTPS" -Direction Inbound -LocalPort 443 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue
+New-NetFirewallRule -DisplayName "Allow SSH" -Direction Inbound -LocalPort 22 -Protocol TCP -Action Allow -ErrorAction SilentlyContinue
 
+
+# Ensure Ssh is running
 Set-Service -Name sshd -StartupType 'Automatic'
 Start-Service sshd
-
-# Install IIS and required features
-Install-WindowsFeature -Name Web-Server, Web-Asp-Net45, Web-Mgmt-Tools -IncludeManagementTools
-
-Set-Service -Name W3SVC -StartupType Automatic
-Start-Service W3SVC
-
-Remove-Website -Name "Default Web Site"
-
 </powershell>
