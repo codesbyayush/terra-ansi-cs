@@ -1,16 +1,20 @@
+---
 - name: Deployment setup for .NET
   hosts: all
+
   vars: 
     mysite: mysite1
     dest_folder_name: mysite
     src_folder_path: "{{playbook_dir}}/cout/"
     bundle_download_link: https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.1/dotnet-hosting-10.0.1-win.exe
     download_path: C:\Users\ansible\Downloads
+
   tasks: 
     - name: Set env variables
       ansible.windows.win_environment: 
         level: machine
         variables: 
+          
     - name: Install IIS Web Server and features
       ansible.windows.win_feature: 
         name: 
@@ -20,38 +24,46 @@
         state: present
         include_management_tools: "yes"
       register: iis_install
+
     - name: Reboot if IIS installation requires it
       ansible.windows.win_reboot: 
         reboot_timeout: 600
       when: iis_install.reboot_required
+
     - name: Ensure W3SVC service is set to automatic
       ansible.windows.win_service: 
         name: W3SVC
         start_mode: auto
         state: started
+
     - name: Remove Default Web Site if exists
       microsoft.iis.website: 
         name: Default Web Site
         state: absent
       ignore_errors: true
+
     - name: Stop IIS service before deployment
       ansible.windows.win_service: 
         name: W3SVC
         state: stopped
+
     - name: Ensure destination directory exists
       ansible.windows.win_file: 
         path: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
         state: directory
+
     - name: Copy publish folder to destination
       ansible.windows.win_copy: 
         src: "{{ src_folder_path }}"
         dest: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
+
     - name: Download .Net hosting bundle
       ansible.windows.win_get_url: 
         url: "{{ bundle_download_link }}"
         dest: "{{ download_path }}\\dotnet-hosting-10.0.1-win.exe"
         force: "no"
       register: download_result
+
     - name: Install .Net hosting bundle
       ansible.windows.win_package: 
         path: "{{ download_path }}\\dotnet-hosting-10.0.1-win.exe"
@@ -59,11 +71,13 @@
         state: present
         arguments: /q /norestart
       when: download_result is succeeded
+
     - name: Start IIS service
       ansible.windows.win_service: 
         name: W3SVC
         state: started
         start_mode: auto
+
     - name: Create application pool
       microsoft.iis.web_app_pool: 
         name: MyAppPool
@@ -72,11 +86,13 @@
           managedPipelineMode: Integrated
           managedRuntimeVersion: ""
           enable32BitAppOnWin64: true
+
     - name: Remove old site if exists
       microsoft.iis.website: 
         name: "{{ mysite }}"
         state: absent
       ignore_errors: true
+
     - name: Create website with bindings
       microsoft.iis.website: 
         name: "{{ mysite }}"
@@ -88,9 +104,11 @@
               port: 80
               protocol: http
       ignore_errors: true
+
     - name: Restart iis after creation
       ansible.windows.win_powershell: 
         script: iisreset /restart
+        
     - name: Ensure website is started
       microsoft.iis.website: 
         name: "{{ mysite }}"

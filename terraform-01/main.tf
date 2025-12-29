@@ -34,6 +34,13 @@ module "vpc" {
   name_prefix          = local.name_prefix
 }
 
+module "s3_build_files" {
+  source        = "./modules/s3"
+  region        = var.region
+  force_destroy = true
+  name_prefix   = "${local.name_prefix}-build-files"
+}
+
 module "rds" {
   source               = "./modules/rds"
   vpc_id               = module.vpc.vpc_id

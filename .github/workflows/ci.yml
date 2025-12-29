@@ -1,9 +1,7 @@
-name: Automated infra provisioning with Terraform
+name: Integration checks and build
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
     branches: [ main ]
   workflow_dispatch:
 
@@ -13,6 +11,7 @@ env:
   AWS_BACKEND_BUCKET: ${{ secrets.AWS_BACKEND_BUCKET }}
   AWS_SSH_KEY_NAME: ${{ secrets.AWS_SSH_KEY_NAME }}
   DB_NAME: ${{ secrets.DB_NAME }}
+  APP_NAME: "dotnetapi"
   ENV: "prod"
 
 permissions:
@@ -20,7 +19,7 @@ permissions:
       contents: read    # This is required for actions/checkout
 
 jobs:
-  TerraformProvisioning:
+  TerraformChecks:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,11 +33,6 @@ jobs:
           role-to-assume: ${{ env.AWS_ROLE_ARN }}
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Sts GetCallerIdentity
-        run: |
-          aws sts get-caller-identity
-      
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -56,8 +50,12 @@ jobs:
         id: validate
         run: terraform validate
 
-      - name: Terraform Apply
-        id: apply
+      - name: Terraform formatting check
+        id: format
+        run: terraform fmt -check
+
+      - name: Terraform Plan
+        id: plan
         run: |
           cat > ci.auto.tfvars <<EOF
           env = "${{ env.ENV }}"
@@ -66,14 +64,14 @@ jobs:
           db_name = "${{ env.DB_NAME }}"
           ec2_key_name = "${{ env.AWS_SSH_KEY_NAME }}"
           EOF
-          terraform apply -auto-approve -input=false
+          terraform plan
 
-  AnsibleConfiguration: 
+  DotNetBuild: 
     runs-on: ubuntu-latest
-    needs: TerraformProvisioning
+    needs: TerraformChecks
     defaults:
       run:
-        working-directory: ./ansible-01
+        working-directory: ./try-02
     steps:
       - uses: actions/checkout@v3
       - uses: hashicorp/setup-terraform@v3
@@ -104,27 +102,14 @@ jobs:
         continue-on-error: true
         
       - name: Build release C#
-        run: dotnet publish -c release -o ../ansible-01/cout
-        working-directory: ./try-02
+        run: dotnet publish -c release -o ./cout
+
+      - name: Fetch Bucket Name
+        id: fetch_bucket
+        run: |
+          NAME=$(aws s3api list-buckets --prefix "${{ env.APP_NAME }}-${{ env.ENV }}-build-files" --query "Buckets[0].Name" --output text)
+          echo "bucket_id=$NAME" >> "$GITHUB_OUTPUT"
       
-      - name: Setup Bun runtime
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      
-      - name: Update envs and secrets to latest
-        run: bun script
-
-      - name: Install Ansible and Python dependencies
-        run: |
-          python3 -m pip install --upgrade pip
-          python3 -m pip install ansible pywinrm requests
-
-      - name: Install Windows collections
-        run: |
-          ansible-galaxy collection install -r requirements.yml
-
-      - name: Run Ansible Playbook
-        run: |
-          ansible-playbook -i ./inventory.ini ./deploy.yml
+      - name: Save build to s3
+        run: aws s3 cp ./cout "s3://${{ steps.fetch_bucket.outputs.bucket_id  }}/${{ github.sha }}" --recursive
       
