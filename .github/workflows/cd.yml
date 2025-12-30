@@ -96,6 +96,13 @@ jobs:
         run: |
           NAME=$(aws s3api list-buckets --prefix "${{ env.APP_NAME }}-${{ env.ENV }}-build-files" --query "Buckets[0].Name" --output text)
           echo "bucket_name=$NAME" >> "$GITHUB_OUTPUT"  
+
+      - name: Fetch Ansible password
+        id: fetch_ansible_password
+        run: |
+          NAME=$(aws secretsmanager list-secrets --filters Key="name",Values="${{ env.APP_NAME }}-${{ env.ENV}}-ansible-password" --query 'SecretList[0].Name' --output text)
+          PASSWORD=$(aws secretsmanager get-secret-value --secret-id $NAME --query "SecretString" --output text)
+          echo "password=$PASSWORD" >> "$GITHUB_OUTPUT"  
     
       - name: Setup Bun runtime
         uses: oven-sh/setup-bun@v1
@@ -118,6 +125,7 @@ jobs:
         env:
           BUILD_FILES_BUCKET: ${{ steps.fetch_bucket.outputs.bucket_name }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ANSIBLE_PASSWORD: ${{ steps.fetch_ansible_password.outputs.password }}
         run: |
           ansible-playbook -i ./inventory.ini ./deploy.yml
       

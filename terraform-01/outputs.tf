@@ -32,11 +32,12 @@ output "rds_db_name" {
   sensitive   = true
 }
 
-output "ansible_password" {
-  value       = random_password.ansible_password.result
-  description = "Generated password for Ansible user we created on EC2 instances"
-  sensitive   = true
-}
+# Moved to AWS_Secrets_Manager
+# output "ansible_password" {
+#   value       = random_password.ansible_password.result
+#   description = "Generated password for Ansible user we created on EC2 instances"
+#   sensitive   = true
+# }
 
 output "rds_username" {
   value       = module.rds.rds_username

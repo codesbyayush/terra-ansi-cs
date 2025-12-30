@@ -5,12 +5,12 @@ const grpvarpath = "./group_vars/windows"
 const deploypath = "./deploy.yml"
 
 const regex_for_ini_grp = /\[windows\][\s\S]*?(?=\n\s*\n|$)/g;
-const regex_for_vals = /^ansible_password:\s*(.*)$/m
+// const regex_for_vals = /^ansible_password:\s*(.*)$/m
 
 const secrets = await $`cd ../terraform-01 && terraform output -json`.json();
 
 let ini = await Bun.file(inipath).text();
-let grp_vars = await Bun.file(grpvarpath).text();
+// let grp_vars = await Bun.file(grpvarpath).text();
 
 const match = ini.match(regex_for_ini_grp);
 
@@ -26,8 +26,8 @@ if (match) {
     await Bun.write(inipath, new_hosts + ini)
 }
 
-grp_vars = grp_vars.replace(regex_for_vals, `ansible_password: "${secrets.ansible_password.value}"`)
-await Bun.write(grpvarpath, grp_vars)
+// grp_vars = grp_vars.replace(regex_for_vals, `ansible_password: "${secrets.ansible_password.value}"`)
+// await Bun.write(grpvarpath, grp_vars)
 
 let deployText = await Bun.file(deploypath).text();
 const deployYmlToJS = await Bun.YAML.parse(deployText);

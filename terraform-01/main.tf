@@ -24,6 +24,12 @@ resource "random_password" "ansible_password" {
   min_numeric = 1
 }
 
+module "ansible_password_secret" {
+  source        = "./modules/secrets"
+  name_prefix   = "${local.name_prefix}-ansible-password"
+  secret_string = random_password.ansible_password.result
+}
+
 module "vpc" {
   source               = "./modules/vpc"
   vpc_cidr             = local.vpc_cidr

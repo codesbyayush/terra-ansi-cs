@@ -16,20 +16,20 @@
         level: machine
         variables: 
           
-    - name: Install IIS Web Server and features
-      ansible.windows.win_feature: 
-        name: 
-          - Web-Server
-          - Web-Asp-Net45
-          - Web-Mgmt-Tools
-        state: present
-        include_management_tools: "yes"
-      register: iis_install
+    # - name: Install IIS Web Server and features
+    #   ansible.windows.win_feature: 
+    #     name: 
+    #       - Web-Server
+    #       - Web-Asp-Net45
+    #       - Web-Mgmt-Tools
+    #     state: present
+    #     include_management_tools: "yes"
+    #   register: iis_install
 
-    - name: Reboot if IIS installation requires it
-      ansible.windows.win_reboot: 
-        reboot_timeout: 600
-      when: iis_install.reboot_required
+    # - name: Reboot if IIS installation requires it
+    #   ansible.windows.win_reboot: 
+    #     reboot_timeout: 600
+    #   when: iis_install.reboot_required
 
     - name: Ensure W3SVC service is set to automatic
       ansible.windows.win_service: 
@@ -73,9 +73,11 @@
       ansible.windows.win_file: 
         path: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
         state: directory
+
     - name: Download build files from S3
       ansible.windows.win_powershell: 
         script: "$env:Path = [System.Environment]::GetEnvironmentVariable(\"Path\",\"Machine\")\naws s3 sync \"s3://{{ s3_bucket }}/{{ commit_sha }}\" \"C:\\inetpub\\wwwroot\\{{ dest_folder_name }}\" --delete\n"
+
     - name: Download .Net hosting bundle
       ansible.windows.win_get_url: 
         url: "{{ bundle_download_link }}"

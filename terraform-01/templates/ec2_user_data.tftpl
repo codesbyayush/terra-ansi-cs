@@ -29,4 +29,10 @@ Start-Service sshd
 
 Stop-Service -Name "wuauserv" -Force
 Set-Service -Name "wuauserv" -StartupType Disabled
+
+
+Import-Module ServerManager
+Enable-WindowsOptionalFeature -Online -NoRestart -FeatureName 'IIS-WebServerRole', 'IIS-WebServer', 'IIS-ManagementConsole'
+
+Get-WebBinding -Port 80 -Name "Default Web Site" | Remove-WebBinding
 </powershell>
