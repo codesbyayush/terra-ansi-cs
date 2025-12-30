@@ -49,3 +49,8 @@ output "rds_password" {
   description = "RDS database master password"
   sensitive   = true
 }
+
+output "build_files_bucket_name" {
+  value       = module.s3_build_files.bucket_name
+  description = "S3 bucket name for build files"
+}

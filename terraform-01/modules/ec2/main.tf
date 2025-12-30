@@ -126,6 +126,7 @@ resource "aws_instance" "this" {
   vpc_security_group_ids = concat([aws_security_group.this.id], var.additional_sg_ids)
   key_name               = var.key_name
   user_data              = var.user_data
+  iam_instance_profile   = var.iam_instance_profile
 
   dynamic "credit_specification" {
     for_each = [for type in [var.cpu_credits_type] : type if local.is_burstable]

@@ -102,3 +102,9 @@ variable "cpu_credits_type" {
   default     = "standard"
   description = "Credits type for burstable family instance. (e.g standard or unlimited)"
 }
+
+variable "iam_instance_profile" {
+  type        = string
+  default     = null
+  description = "IAM instance profile name to attach to EC2 instances"
+}

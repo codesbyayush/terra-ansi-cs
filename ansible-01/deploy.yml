@@ -5,7 +5,8 @@
   vars: 
     mysite: mysite1
     dest_folder_name: mysite
-    src_folder_path: "{{playbook_dir}}/cout/"
+    s3_bucket: "{{ lookup('env', 'BUILD_FILES_BUCKET') }}"
+    commit_sha: "{{ lookup('env', 'COMMIT_SHA') }}"
     bundle_download_link: https://builds.dotnet.microsoft.com/dotnet/aspnetcore/Runtime/10.0.1/dotnet-hosting-10.0.1-win.exe
     download_path: C:\Users\ansible\Downloads
 
@@ -47,16 +48,34 @@
         name: W3SVC
         state: stopped
 
+    - name: Check if AWS CLI is installed
+      ansible.windows.win_shell: "(Get-Command aws -ErrorAction SilentlyContinue) -ne $null\n"
+      register: aws_cli_check
+      changed_when: false
+      ignore_errors: true
+
+    - name: Download AWS CLI installer
+      ansible.windows.win_get_url: 
+        url: https://awscli.amazonaws.com/AWSCLIV2.msi
+        dest: "{{ download_path }}\\AWSCLIV2.msi"
+        force: "no"
+      when: "aws_cli_check.stdout | trim != 'True'"
+
+    - name: Install AWS CLI
+      ansible.windows.win_package: 
+        path: "{{ download_path }}\\AWSCLIV2.msi"
+        product_id: AWSCLIV2
+        state: present
+        arguments: /quiet
+      when: "aws_cli_check.stdout | trim != 'True'"
+
     - name: Ensure destination directory exists
       ansible.windows.win_file: 
         path: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
         state: directory
-
-    - name: Copy publish folder to destination
-      ansible.windows.win_copy: 
-        src: "{{ src_folder_path }}"
-        dest: "C:\\inetpub\\wwwroot\\{{dest_folder_name}}"
-
+    - name: Download build files from S3
+      ansible.windows.win_powershell: 
+        script: "$env:Path = [System.Environment]::GetEnvironmentVariable(\"Path\",\"Machine\")\naws s3 sync \"s3://{{ s3_bucket }}/{{ commit_sha }}\" \"C:\\inetpub\\wwwroot\\{{ dest_folder_name }}\" --delete\n"
     - name: Download .Net hosting bundle
       ansible.windows.win_get_url: 
         url: "{{ bundle_download_link }}"

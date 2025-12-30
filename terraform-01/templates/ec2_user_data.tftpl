@@ -26,4 +26,7 @@ New-NetFirewallRule -DisplayName "Allow SSH" -Direction Inbound -LocalPort 22 -P
 # Ensure Ssh is running
 Set-Service -Name sshd -StartupType 'Automatic'
 Start-Service sshd
+
+Stop-Service -Name "wuauserv" -Force
+Set-Service -Name "wuauserv" -StartupType Disabled
 </powershell>

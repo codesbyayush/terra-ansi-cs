@@ -57,17 +57,18 @@ module "rds" {
 }
 
 module "ec2" {
-  source           = "./modules/ec2"
-  vpc_id           = module.vpc.vpc_id
-  instance_type    = "t3.micro"
-  subnets          = length(local.public_east_1a_subnets) > 0 ? [local.public_east_1a_subnets[0]] : [module.vpc.public_subnets[0].id]
-  cpu_credits_type = "standard"
-  name_prefix      = local.name_prefix
-  key_name         = var.ec2_key_name
-  instance_tags    = { Role = "apiserver" }
-  enable_ssh       = true
-  enable_rdp       = true
-  dev_access_cidrs = tolist(var.josh_ips)
+  source               = "./modules/ec2"
+  vpc_id               = module.vpc.vpc_id
+  instance_type        = "t3.micro"
+  subnets              = length(local.public_east_1a_subnets) > 0 ? [local.public_east_1a_subnets[0]] : [module.vpc.public_subnets[0].id]
+  cpu_credits_type     = "standard"
+  name_prefix          = local.name_prefix
+  key_name             = var.ec2_key_name
+  instance_tags        = { Role = "apiserver" }
+  enable_ssh           = true
+  enable_rdp           = true
+  dev_access_cidrs     = tolist(var.josh_ips)
+  iam_instance_profile = module.iam.ec2_instance_profile_name
 
   ingress_rules = [
     {
@@ -136,6 +137,8 @@ module "alb" {
 }
 
 module "iam" {
-  source            = "./modules/iam"
-  state_file_bucket = var.state_file_bucket
+  source                 = "./modules/iam"
+  state_file_bucket      = var.state_file_bucket
+  build_files_bucket_arn = module.s3_build_files.bucket_arn
+  name_prefix            = local.name_prefix
 }
