@@ -1,6 +1,6 @@
-output "rds_endpoint" {
-  value       = aws_db_instance.this.endpoint
-  description = "RDS instance endpoint"
+output "rds_address" {
+  value       = aws_db_instance.this.address
+  description = "RDS instance dns name address"
 }
 
 output "rds_port" {

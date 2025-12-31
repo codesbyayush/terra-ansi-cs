@@ -86,22 +86,24 @@ resource "aws_db_parameter_group" "this" {
 }
 
 resource "aws_db_instance" "this" {
-  identifier_prefix      = "${local.name_prefix}-"
-  instance_class         = var.instance_class
-  engine                 = "postgres"
-  engine_version         = var.engine_version
-  parameter_group_name   = aws_db_parameter_group.this.name
-  username               = random_string.db_username.result
-  password               = random_password.db_password.result
-  db_name                = var.db_name
-  port                   = var.db_port
-  storage_encrypted      = var.encrypt_storage
-  allocated_storage      = var.allocated_storage
-  apply_immediately      = var.apply_immediately
-  skip_final_snapshot    = var.skip_final_snapshot
-  multi_az               = false
-  db_subnet_group_name   = aws_db_subnet_group.this.name
-  vpc_security_group_ids = [aws_security_group.server.id]
+  identifier_prefix            = "${local.name_prefix}-"
+  instance_class               = var.instance_class
+  engine                       = "postgres"
+  engine_version               = var.engine_version
+  parameter_group_name         = aws_db_parameter_group.this.name
+  username                     = random_string.db_username.result
+  password                     = random_password.db_password.result
+  db_name                      = var.db_name
+  port                         = var.db_port
+  storage_encrypted            = var.encrypt_storage
+  allocated_storage            = var.allocated_storage
+  apply_immediately            = var.apply_immediately
+  skip_final_snapshot          = var.skip_final_snapshot
+  multi_az                     = false
+  db_subnet_group_name         = aws_db_subnet_group.this.name
+  vpc_security_group_ids       = [aws_security_group.server.id]
+  performance_insights_enabled = true
+
 
   tags = {
     Name = local.name_prefix

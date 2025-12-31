@@ -1,8 +1,6 @@
 name: Automated infra provisioning and deployment
 
 on:
-  # push:
-  #   branches: [ main ]
   workflow_run:
     workflows: ["CI and build"]
     types: [completed]
@@ -22,7 +20,7 @@ permissions:
       contents: read    # This is required for actions/checkout
 
 jobs:
-  TerraformProvisioning:
+  InfraProvisioning:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -64,7 +62,8 @@ jobs:
 
   AnsibleConfiguration: 
     runs-on: ubuntu-latest
-    needs: TerraformProvisioning
+    environment: delayed_deployment
+    needs: InfraProvisioning
     defaults:
       run:
         working-directory: ./ansible-01
@@ -102,8 +101,21 @@ jobs:
         run: |
           NAME=$(aws secretsmanager list-secrets --filters Key="name",Values="${{ env.APP_NAME }}-${{ env.ENV}}-ansible-password" --query 'SecretList[0].Name' --output text)
           PASSWORD=$(aws secretsmanager get-secret-value --secret-id $NAME --query "SecretString" --output text)
-          echo "password=$PASSWORD" >> "$GITHUB_OUTPUT"  
-    
+          echo "password=$PASSWORD" >> "$GITHUB_OUTPUT" 
+          
+      - name: Build Connection string
+        id: build_db_conn_string
+        run: |
+          NAME=$(aws secretsmanager list-secrets --filters Key="name",Values="${{ env.APP_NAME }}-${{ env.ENV}}-db-" --query 'SecretList[0].Name' --output text)
+          JSON_OUT=$(aws secretsmanager get-secret-value --secret-id $NAME --query "SecretString" --output text)
+          PORT=$(echo $JSON_OUT | jq -r '.port')
+          HOST=$(echo $JSON_OUT | jq -r '.host')
+          DB_NAME=$(echo $JSON_OUT | jq -r '.db_name')
+          USERNAME=$(echo $JSON_OUT | jq -r '.username')
+          PASSWORD=$(echo $JSON_OUT | jq -r '.password')
+          CONNECTION_STRING="Host=$HOST;Port=$PORT;Database=$DB_NAME;Username=$USERNAME;Password=$PASSWORD"
+          echo "connection_string=$CONNECTION_STRING" >> "$GITHUB_OUTPUT"
+
       - name: Setup Bun runtime
         uses: oven-sh/setup-bun@v1
         with:
@@ -126,6 +138,7 @@ jobs:
           BUILD_FILES_BUCKET: ${{ steps.fetch_bucket.outputs.bucket_name }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           ANSIBLE_PASSWORD: ${{ steps.fetch_ansible_password.outputs.password }}
+          DB_CONNECTION_STRING: ${{ steps.build_db_conn_string.outcome.connection_string }} 
         run: |
           ansible-playbook -i ./inventory.ini ./deploy.yml
       

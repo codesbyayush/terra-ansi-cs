@@ -62,6 +62,18 @@ module "rds" {
   name_prefix          = local.name_prefix
 }
 
+module "rds_credentials_secret" {
+  source      = "./modules/secrets"
+  name_prefix = "${local.name_prefix}-db-${var.db_name}-credentials"
+  secret_string = jsonencode({
+    username = module.rds.rds_username
+    password = module.rds.rds_password
+    host     = module.rds.rds_address
+    port     = module.rds.rds_port
+    db_name  = module.rds.rds_db_name
+  })
+}
+
 module "ec2" {
   source               = "./modules/ec2"
   vpc_id               = module.vpc.vpc_id
@@ -74,7 +86,7 @@ module "ec2" {
   enable_ssh           = true
   enable_rdp           = true
   dev_access_cidrs     = tolist(var.josh_ips)
-  iam_instance_profile = module.iam.ec2_instance_profile_name
+  iam_instance_profile = module.iam_ec2_s3_access.instance_profile_name
 
   ingress_rules = [
     {
@@ -142,9 +154,20 @@ module "alb" {
   }
 }
 
-module "iam" {
-  source                 = "./modules/iam"
-  state_file_bucket      = var.state_file_bucket
-  build_files_bucket_arn = module.s3_build_files.bucket_arn
-  name_prefix            = local.name_prefix
+module "iam_ec2_s3_access" {
+  source      = "./modules/iam-role-for-service-accounts"
+  name_prefix = local.name_prefix
+  role_name   = "ec2-s3-access"
+
+  trusted_services = ["ec2.amazonaws.com"]
+
+  policies = {
+    "s3-access" = {
+      policy_json = templatefile("${path.root}/policies/ec2-s3-access.json.tftpl", {
+        bucket_arn = module.s3_build_files.bucket_arn
+      })
+    }
+  }
+
+  create_instance_profile = true
 }
