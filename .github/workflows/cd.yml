@@ -138,7 +138,7 @@ jobs:
           BUILD_FILES_BUCKET: ${{ steps.fetch_bucket.outputs.bucket_name }}
           COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           ANSIBLE_PASSWORD: ${{ steps.fetch_ansible_password.outputs.password }}
-          DB_CONNECTION_STRING: ${{ steps.build_db_conn_string.outcome.connection_string }} 
+          DB_CONNECTION_STRING: ${{ steps.build_db_conn_string.outputs.connection_string }} 
         run: |
           ansible-playbook -i ./inventory.ini ./deploy.yml
       
