@@ -41,10 +41,25 @@ module "vpc" {
 }
 
 module "s3_build_files" {
-  source        = "./modules/s3"
-  region        = var.region
-  force_destroy = true
-  name_prefix   = "${local.name_prefix}-build-files"
+  source             = "./modules/s3"
+  region             = var.region
+  force_destroy      = true
+  name_prefix        = "${local.name_prefix}-build-files"
+  versioning_enabled = false
+
+  default_retention = {
+    mode = "COMPLIANCE"
+    days = 1
+  }
+
+  lifecycle_rules = {
+    "delete-after-90-days" = {
+      enabled = true
+      expiration = {
+        days = 90
+      }
+    }
+  }
 }
 
 module "rds" {

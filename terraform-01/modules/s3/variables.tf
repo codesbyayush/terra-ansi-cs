@@ -15,3 +15,35 @@ variable "force_destroy" {
   default     = true
   description = "Allow deletion of objects when bucket is deleted otherwise will throw error. (Objects once deleted are non-recoverable)"
 }
+
+variable "lifecycle_rules" {
+  type = map(object({
+    enabled = bool
+    expiration = object({
+      date = optional(string)
+      days = optional(number)
+    })
+  }))
+  default     = {}
+  description = "Allows defining lifecycle rules for the bucket level"
+}
+
+variable "versioning_enabled" {
+  type    = bool
+  default = false
+}
+
+variable "default_retention" {
+  type = object({
+    mode  = string
+    days  = optional(number)
+    years = optional(number)
+  })
+  default = null
+  validation {
+    condition = var.default_retention == null || (try(var.default_retention.days, null) != null ||
+    try(var.default_retention.years, null) != null)
+    error_message = "Pass either years or days for retention"
+  }
+  description = "Object retention config. (Auto enables object lock)"
+}
