@@ -45,7 +45,7 @@ module "s3_build_files" {
   region             = var.region
   force_destroy      = true
   name_prefix        = "${local.name_prefix}-build-files"
-  versioning_enabled = false
+  versioning_enabled = true
 
   default_retention = {
     mode = "COMPLIANCE"

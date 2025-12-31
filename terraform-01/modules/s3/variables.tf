@@ -45,5 +45,9 @@ variable "default_retention" {
     try(var.default_retention.years, null) != null)
     error_message = "Pass either years or days for retention"
   }
+  validation {
+    condition     = var.default_retention == null || var.versioning_enabled == true
+    error_message = "Object lock requires versioning to be enabled in the bucket"
+  }
   description = "Object retention config. (Auto enables object lock)"
 }

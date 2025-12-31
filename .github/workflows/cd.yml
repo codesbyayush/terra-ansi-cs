@@ -55,7 +55,7 @@ jobs:
           echo "bucket_name=$NAME" >> "$GITHUB_OUTPUT" 
 
       - name: Retrieve file from s3
-        run: aws s3 cp "s3://${{ steps.fetch_bucket.outputs.bucket_id  }}/${{ github.event.workflow_run.head_sha || github.sha }}/terraform" ./planfile
+        run: aws s3 cp "s3://${{ steps.fetch_bucket.outputs.bucket_name  }}/${{ github.event.workflow_run.head_sha || github.sha }}/terraform" ./planfile
 
       - name: Terraform Apply
         id: apply
@@ -67,7 +67,7 @@ jobs:
           db_name = "${{ env.DB_NAME }}"
           ec2_key_name = "${{ env.AWS_SSH_KEY_NAME }}"
           EOF
-          terraform apply ./planfile -auto-approve
+          terraform apply ./planfile
 
   AnsibleConfiguration: 
     runs-on: ubuntu-latest

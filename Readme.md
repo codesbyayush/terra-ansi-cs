@@ -24,7 +24,8 @@ Initialize terraform
   cd terraform-01
   terraform init
 ```
-
+> Before running apply we need to create a s3 backend store for the build file
+> `terraform apply --target=module.s3_build_files`
 Provision infra
 
 ```bash
