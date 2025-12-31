@@ -1,12 +1,12 @@
-import { $ } from "bun";
-
-const inipath = "./inventory.ini";
+const hostPath = "./inventory.ini";
+const stateFilePath = "./tf.json"
 
 const regex_for_ini_grp = /\[windows\][\s\S]*?(?=\n\s*\n|$)/g;
 
-const secrets = await $`cd ../terraform-01 && terraform output -json`.json();
+const state = await Bun.file(stateFilePath).json();
+const secrets = state.outputs;
 
-let ini = await Bun.file(inipath).text();
+let ini = await Bun.file(hostPath).text();
 
 const match = ini.match(regex_for_ini_grp);
 
@@ -17,9 +17,9 @@ for (const ip of secrets.ec2_public_ips.value) {
 }
 if (match) {
     ini = ini.replace(regex_for_ini_grp, new_hosts);
-    await Bun.write(inipath, ini);
+    await Bun.write(hostPath, ini);
 } else {
-    await Bun.write(inipath, new_hosts + ini)
+    await Bun.write(hostPath, new_hosts + ini)
 }
 
 /*

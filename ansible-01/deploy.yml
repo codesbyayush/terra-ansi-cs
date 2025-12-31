@@ -71,7 +71,7 @@
 
     - name: Download build files from S3
       ansible.windows.win_powershell: 
-        script: aws s3 cp s3://{{ s3_bucket }}/{{ commit_sha }}/ C:\inetpub\wwwroot\{{ dest_folder_name }} --recursive
+        script: aws s3 cp s3://{{ s3_bucket }}/{{ commit_sha }}/build/ C:\inetpub\wwwroot\{{ dest_folder_name }} --recursive
 
     - name: Download .Net hosting bundle
       ansible.windows.win_get_url: 

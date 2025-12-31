@@ -54,6 +54,12 @@ jobs:
         id: format
         run: terraform fmt -check
 
+      - name: Fetch Bucket Name
+        id: fetch_bucket
+        run: |
+          NAME=$(aws s3api list-buckets --prefix "${{ env.APP_NAME }}-${{ env.ENV }}-build-files" --query "Buckets[0].Name" --output text)
+          echo "bucket_id=$NAME" >> "$GITHUB_OUTPUT"
+
       - name: Terraform Plan
         id: plan
         run: |
@@ -64,7 +70,10 @@ jobs:
           db_name = "${{ env.DB_NAME }}"
           ec2_key_name = "${{ env.AWS_SSH_KEY_NAME }}"
           EOF
-          terraform plan
+          terraform plan -out planfile
+
+      - name: Save build to s3
+        run: aws s3 cp ./planfile "s3://${{ steps.fetch_bucket.outputs.bucket_id  }}/${{ github.sha }}/terraform"
 
   DotNetBuild: 
     runs-on: ubuntu-latest
@@ -98,5 +107,5 @@ jobs:
           echo "bucket_id=$NAME" >> "$GITHUB_OUTPUT"
       
       - name: Save build to s3
-        run: aws s3 cp ./cout "s3://${{ steps.fetch_bucket.outputs.bucket_id  }}/${{ github.sha }}" --recursive
+        run: aws s3 cp ./cout "s3://${{ steps.fetch_bucket.outputs.bucket_id  }}/${{ github.sha }}/build" --recursive
       

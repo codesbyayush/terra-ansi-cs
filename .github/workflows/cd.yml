@@ -48,6 +48,15 @@ jobs:
         id: switch
         run: terraform workspace select ${{ env.ENV }}
 
+      - name: Fetch Bucket Name
+        id: fetch_bucket
+        run: |
+          NAME=$(aws s3api list-buckets --prefix "${{ env.APP_NAME }}-${{ env.ENV }}-build-files" --query "Buckets[0].Name" --output text)
+          echo "bucket_name=$NAME" >> "$GITHUB_OUTPUT" 
+
+      - name: Retrieve file from s3
+        run: aws s3 cp "s3://${{ steps.fetch_bucket.outputs.bucket_id  }}/${{ github.event.workflow_run.head_sha || github.sha }}/terraform" ./planfile
+
       - name: Terraform Apply
         id: apply
         run: |
@@ -58,7 +67,7 @@ jobs:
           db_name = "${{ env.DB_NAME }}"
           ec2_key_name = "${{ env.AWS_SSH_KEY_NAME }}"
           EOF
-          terraform apply -auto-approve
+          terraform apply ./planfile -auto-approve
 
   AnsibleConfiguration: 
     runs-on: ubuntu-latest
@@ -69,9 +78,6 @@ jobs:
         working-directory: ./ansible-01
     steps:
       - uses: actions/checkout@v3
-      - uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.14.1
 
       - name: configure aws credentials
         uses: aws-actions/configure-aws-credentials@v1.7.0
@@ -80,15 +86,10 @@ jobs:
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
       
-      - name: Terraform init
-        id: init
-        run: terraform init -backend-config="bucket=${{ env.AWS_BACKEND_BUCKET }}"
-        working-directory: ./terraform-01
-      
-      - name: Terraform switch workspace
-        id: switch
-        run: terraform workspace select ${{ env.ENV }}
-        working-directory: ./terraform-01
+      - name: Fetch terraform state file
+        id: fetch_tf_state
+        run: |
+          aws s3 cp "s3://${{ env.AWS_BACKEND_BUCKET  }}/env:/${{ env.ENV }}/terraform.tfstate" ./tf.json
       
       - name: Fetch Bucket Name
         id: fetch_bucket
