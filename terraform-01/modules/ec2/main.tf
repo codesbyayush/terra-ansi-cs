@@ -135,6 +135,39 @@ resource "aws_instance" "this" {
     }
   }
 
+  root_block_device {
+    volume_size           = var.root_volume.size
+    volume_type           = var.root_volume.type
+    iops                  = var.root_volume.iops
+    throughput            = var.root_volume.type == "gp3" ? var.root_volume.throughput : null
+    encrypted             = var.root_volume.encrypted
+    kms_key_id            = var.root_volume.kms_key_id
+    delete_on_termination = var.root_volume.delete_on_termination
+
+    tags = {
+      Name = "${local.name_prefix}-${count.index + 1}-root"
+    }
+  }
+
+  dynamic "ebs_block_device" {
+    for_each = var.ebs_volumes
+    content {
+      device_name           = ebs_block_device.value.device_name
+      volume_size           = ebs_block_device.value.size
+      volume_type           = ebs_block_device.value.type
+      iops                  = ebs_block_device.value.type == "gp3" || startswith(ebs_block_device.value.type, "io") ? ebs_block_device.value.iops : null
+      throughput            = ebs_block_device.value.type == "gp3" ? ebs_block_device.value.throughput : null
+      encrypted             = ebs_block_device.value.encrypted
+      kms_key_id            = ebs_block_device.value.kms_key_id
+      delete_on_termination = ebs_block_device.value.delete_on_termination
+      snapshot_id           = ebs_block_device.value.snapshot_id
+
+      tags = {
+        Name = "${local.name_prefix}-${count.index + 1}-${replace(ebs_block_device.value.device_name, "/dev/", "")}"
+      }
+    }
+  }
+
   tags = merge(
     var.instance_tags,
     {

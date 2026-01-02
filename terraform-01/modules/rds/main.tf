@@ -86,26 +86,59 @@ resource "aws_db_parameter_group" "this" {
 }
 
 resource "aws_db_instance" "this" {
-  identifier_prefix            = "${local.name_prefix}-"
-  instance_class               = var.instance_class
-  engine                       = "postgres"
-  engine_version               = var.engine_version
-  parameter_group_name         = aws_db_parameter_group.this.name
-  username                     = random_string.db_username.result
-  password                     = random_password.db_password.result
-  db_name                      = var.db_name
-  port                         = var.db_port
-  storage_encrypted            = var.encrypt_storage
-  allocated_storage            = var.allocated_storage
+  identifier_prefix      = "${local.name_prefix}-"
+  instance_class         = var.instance_class
+  engine                 = "postgres"
+  engine_version         = var.engine_version
+  parameter_group_name   = aws_db_parameter_group.this.name
+  username               = random_string.db_username.result
+  password               = random_password.db_password.result
+  db_name                = var.db_name
+  port                   = var.db_port
+  db_subnet_group_name   = aws_db_subnet_group.this.name
+  vpc_security_group_ids = [aws_security_group.server.id]
+  publicly_accessible    = false
+
+  storage_type          = var.storage_type
+  allocated_storage     = var.allocated_storage
+  max_allocated_storage = var.max_allocated_storage
+  storage_encrypted     = var.encrypt_storage
+
+  multi_az = var.multi_az
+
+  backup_retention_period = var.backup_retention_period
+  backup_window           = var.backup_window
+
+  maintenance_window           = var.maintenance_window
   apply_immediately            = var.apply_immediately
-  skip_final_snapshot          = var.skip_final_snapshot
-  multi_az                     = false
-  db_subnet_group_name         = aws_db_subnet_group.this.name
-  vpc_security_group_ids       = [aws_security_group.server.id]
+  auto_minor_version_upgrade   = true
   performance_insights_enabled = true
 
+  deletion_protection       = var.deletion_protection
+  skip_final_snapshot       = var.skip_final_snapshot
+  final_snapshot_identifier = var.skip_final_snapshot ? null : var.final_snapshot_identifier
 
   tags = {
     Name = local.name_prefix
   }
+}
+
+resource "aws_secretsmanager_secret" "credentials" {
+  name_prefix             = "${local.name_prefix}-credentials-"
+  recovery_window_in_days = 0
+
+  tags = {
+    Name = "${local.name_prefix}-credentials"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "credentials" {
+  secret_id = aws_secretsmanager_secret.credentials.id
+  secret_string = jsonencode({
+    username = random_string.db_username.result
+    password = random_password.db_password.result
+    host     = aws_db_instance.this.address
+    port     = aws_db_instance.this.port
+    db_name  = aws_db_instance.this.db_name
+  })
 }

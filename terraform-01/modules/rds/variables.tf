@@ -21,11 +21,28 @@ variable "engine_version" {
 variable "allocated_storage" {
   type        = number
   default     = 20
-  description = "Allocated storage in GB"
+  description = "Allocated storage in GB. Minimum: 20 for gp2/gp3, 100 for io1/io2"
 
   validation {
-    condition     = var.allocated_storage >= 1 && var.allocated_storage <= 65000
-    error_message = "allocated_storage must be between 1 and 65000 GB"
+    condition     = var.allocated_storage >= 20 && var.allocated_storage <= 65536
+    error_message = "allocated_storage must be between 20 and 65536 GB (note: io1/io2 require minimum 100 GB)"
+  }
+}
+
+variable "max_allocated_storage" {
+  type        = number
+  default     = null
+  description = "Max storage for autoscaling (set higher than allocated_storage to enable). Set to null to disable."
+}
+
+variable "storage_type" {
+  type        = string
+  default     = "gp3"
+  description = "Storage type: gp2, gp3, io1, io2"
+
+  validation {
+    condition     = contains(["gp2", "gp3", "io1", "io2"], var.storage_type)
+    error_message = "storage_type must be one of: gp2, gp3, io1, io2"
   }
 }
 
@@ -78,4 +95,45 @@ variable "name_prefix" {
 variable "parameter_grp_family" {
   type        = string
   description = "Name of the db parameter group family"
+}
+
+variable "multi_az" {
+  type        = bool
+  default     = false
+  description = "Enable Multi-AZ deployment for high availability"
+}
+
+variable "deletion_protection" {
+  type        = bool
+  default     = false
+  description = "Prevent accidental deletion (must set to false before destroying)"
+}
+
+variable "backup_retention_period" {
+  type        = number
+  default     = 7
+  description = "Days to retain automated backups (0 to disable, max 35)"
+
+  validation {
+    condition     = var.backup_retention_period >= 0 && var.backup_retention_period <= 35
+    error_message = "backup_retention_period must be between 0 and 35"
+  }
+}
+
+variable "backup_window" {
+  type        = string
+  default     = null
+  description = "Daily backup window in UTC (e.g., '03:00-04:00'). Must not overlap with maintenance_window."
+}
+
+variable "maintenance_window" {
+  type        = string
+  default     = null
+  description = "Weekly maintenance window in UTC (e.g., 'Mon:04:00-Mon:05:00')"
+}
+
+variable "final_snapshot_identifier" {
+  type        = string
+  default     = null
+  description = "Name of final snapshot when destroying (required if skip_final_snapshot is false)"
 }

@@ -24,10 +24,15 @@ resource "random_password" "ansible_password" {
   min_numeric = 1
 }
 
-module "ansible_password_secret" {
-  source        = "./modules/secrets"
-  name_prefix   = "${local.name_prefix}-ansible-password"
-  secret_string = random_password.ansible_password.result
+resource "aws_secretsmanager_secret" "ansible_password" {
+  name_prefix             = "${local.name_prefix}-ansible-password-"
+  recovery_window_in_days = 0
+}
+
+resource "aws_secretsmanager_secret_version" "ansible_password" {
+  secret_id                = aws_secretsmanager_secret.ansible_password.id
+  secret_string_wo         = random_password.ansible_password.result
+  secret_string_wo_version = 1
 }
 
 module "vpc" {
@@ -42,7 +47,6 @@ module "vpc" {
 
 module "s3_build_files" {
   source             = "./modules/s3"
-  region             = var.region
   force_destroy      = true
   name_prefix        = "${local.name_prefix}-build-files"
   versioning_enabled = true
@@ -53,40 +57,44 @@ module "s3_build_files" {
   }
 
   lifecycle_rules = {
-    "delete-after-90-days" = {
+    "archive-old-data" = {
       enabled = true
-      expiration = {
-        days = 90
+      transitions = [
+        { days = 30, storage_class = "STANDARD_IA" },
+        { days = 90, storage_class = "GLACIER" },
+        { days = 365, storage_class = "DEEP_ARCHIVE" }
+      ]
+      expiration                             = { days = 730 }
+      abort_incomplete_multipart_upload_days = 7
+    }
+
+    "cleanup-old-versions" = {
+      enabled = true
+      noncurrent_version_expiration = {
+        days                     = 30
+        newer_versions_to_retain = 3
       }
     }
   }
 }
 
 module "rds" {
-  source               = "./modules/rds"
-  vpc_id               = module.vpc.vpc_id
-  instance_class       = "db.t4g.micro"
-  engine_version       = "18.1"
-  parameter_grp_family = "postgres18"
-  db_name              = var.db_name
-  allocated_storage    = 20
-  subnet_ids           = local.private_subnet_by_avl_zone
-  encrypt_storage      = true
-  apply_immediately    = true
-  skip_final_snapshot  = true
-  name_prefix          = local.name_prefix
-}
-
-module "rds_credentials_secret" {
-  source      = "./modules/secrets"
-  name_prefix = "${local.name_prefix}-db-${var.db_name}-credentials"
-  secret_string = jsonencode({
-    username = module.rds.rds_username
-    password = module.rds.rds_password
-    host     = module.rds.rds_address
-    port     = module.rds.rds_port
-    db_name  = module.rds.rds_db_name
-  })
+  source                = "./modules/rds"
+  vpc_id                = module.vpc.vpc_id
+  instance_class        = "db.t4g.micro"
+  engine_version        = "18.1"
+  parameter_grp_family  = "postgres18"
+  db_name               = var.db_name
+  allocated_storage     = 20
+  max_allocated_storage = 200
+  storage_type          = "gp3"
+  subnet_ids            = local.private_subnet_by_avl_zone
+  encrypt_storage       = true
+  apply_immediately     = true
+  skip_final_snapshot   = true
+  multi_az              = false
+  deletion_protection   = false
+  name_prefix           = local.name_prefix
 }
 
 module "ec2" {

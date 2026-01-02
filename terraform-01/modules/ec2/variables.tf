@@ -108,3 +108,33 @@ variable "iam_instance_profile" {
   default     = null
   description = "IAM instance profile name to attach to EC2 instances"
 }
+
+variable "root_volume" {
+  type = object({
+    size                  = optional(number, 10)
+    type                  = optional(string, "gp3")
+    iops                  = optional(number, 3000)
+    throughput            = optional(number, 125)
+    encrypted             = optional(bool, true)
+    kms_key_id            = optional(string, null)
+    delete_on_termination = optional(bool, true)
+  })
+  default     = {}
+  description = "Root volume configuration. Size in GB. Type can be gp2, gp3, io1, io2"
+}
+
+variable "ebs_volumes" {
+  type = list(object({
+    device_name           = string
+    size                  = number
+    type                  = optional(string, "gp3")
+    iops                  = optional(number, null)
+    throughput            = optional(number, null)
+    encrypted             = optional(bool, true)
+    kms_key_id            = optional(string, null)
+    delete_on_termination = optional(bool, true)
+    snapshot_id           = optional(string, null)
+  }))
+  default     = []
+  description = "List of additional EBS volumes to attach. Device names like xvdbb"
+}
