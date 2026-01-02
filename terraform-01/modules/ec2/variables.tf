@@ -111,7 +111,7 @@ variable "iam_instance_profile" {
 
 variable "root_volume" {
   type = object({
-    size                  = optional(number, 10)
+    size                  = optional(number, 30)
     type                  = optional(string, "gp3")
     iops                  = optional(number, 3000)
     throughput            = optional(number, 125)

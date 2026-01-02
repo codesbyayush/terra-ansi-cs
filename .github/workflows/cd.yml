@@ -35,7 +35,6 @@ jobs:
           role-session-name: GitHub_to_AWS_via_FederatedOIDC
           aws-region: ${{ env.AWS_REGION }}
       
-
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.14.1
@@ -107,7 +106,7 @@ jobs:
       - name: Build Connection string
         id: build_db_conn_string
         run: |
-          NAME=$(aws secretsmanager list-secrets --filters Key="name",Values="${{ env.APP_NAME }}-${{ env.ENV}}-db-" --query 'SecretList[0].Name' --output text)
+          NAME=$(aws secretsmanager list-secrets --filters Key="name",Values="${{ env.APP_NAME }}-${{ env.ENV}}-rds-credentials" --query 'SecretList[0].Name' --output text)
           JSON_OUT=$(aws secretsmanager get-secret-value --secret-id $NAME --query "SecretString" --output text)
           PORT=$(echo $JSON_OUT | jq -r '.port')
           HOST=$(echo $JSON_OUT | jq -r '.host')
