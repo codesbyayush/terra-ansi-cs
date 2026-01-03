@@ -1,5 +1,33 @@
 
 # Devops
+```mermaid
+graph LR
+    A((git push)) --> CI[CI Pipeline]
+    
+    subgraph CI["CI Pipeline"]
+        direction LR
+        B[OIDC<br/>Auth] --> C[Terraform<br/>Validate + Plan]
+        B --> D[.NET<br/>Build]
+        C --> E[S3<br/>Plan Artifact]
+        D --> F[S3<br/>App Artifact]
+    end
+    
+    CI --> CD[CD Pipeline]
+    
+    subgraph CD["CD Pipeline"]
+        direction LR
+        G[Download<br/>Plan] --> H[Terraform<br/>Apply]
+        I[Fetch<br/>tfstate] --> J[Bun Script<br/>Inventory]
+        H --> K[EC2 + RDS<br/>Created]
+        K --> J
+        F --> L[Ansible<br/>Deploy]
+        J --> L
+        L --> M((App Live))
+    end
+```
+<img width="100%" height="auto" alt="image" src="https://github.com/user-attachments/assets/e9e08928-6c42-42ac-b55e-c330d146cb1f" />
+
+
 
 Automated infra and config with deployment setup using Terraform for Infra provisioning, Ansible for configuration and deployment and Github actions as the automated runner for these two pipelines
     
